@@ -28,6 +28,7 @@ radio_tapas2 = 20
 pos_espira_circular = np.arange(-33.1, 34.2, 2.4)
 PMTs_vertical = np.arange(-33.4, 32.5, 0.707)
 Angulo = np.arange(0, 6.315, 0.0218)
+radio_PMT= 32.4
 x = np.arange(-31.815, 32, 0.707)
 y = np.arange(-31.815, 32, 0.707)
 z = np.arange(-32.522, 32.523, 0.707)
@@ -49,7 +50,7 @@ Optimizacion=[]
 
 #Main function
 
-def Espiras(puntos):
+def Espiras(puntos, visualizar=True):
 
 	# Adding rectangular loops
 	
@@ -97,7 +98,7 @@ def Espiras(puntos):
 
 	
 	
-	# Configuración de los loops circulares
+	# Circular coil configuration
     circular_loops = [
         {"type": "PeriodicCable", "radius": radio_cilindro, "span": 3.0, "sag": 0.26, "pts_per_span": 50,
         "current": 5*I_circulares, "translate": [0,0,36.5]},
@@ -108,7 +109,6 @@ def Espiras(puntos):
         {"type": "CircularPath", "radius": radio_cilindro, "pts": 20, "current": 5*I_circulares, "translate": [0,0,-35.5]}
     ]
 
-    # Crear y añadir cada loop
     for cfg in circular_loops:
         if cfg["type"] == "PeriodicCable":
             w = wire.Wire(
@@ -125,7 +125,7 @@ def Espiras(puntos):
         
         sol.AddWire(w)
 
-    # Loops periódicos a lo largo del cilindro
+    # Adding coils along the height of the detector
     for z_pos in pos_espira_circular:
         w = wire.Wire(
             path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50),
@@ -138,45 +138,34 @@ def Espiras(puntos):
     	
 
 
+     # Elliptical coils configuration
+    elliptical_coils = [
+        # Parte de abajo
+        {"rx": 9.05, "ry": 19.05, "pts": 20, "current": -95, "z": -35.5, "y_shift": -24.7},
+        {"rx": 14.765, "ry": 24.77, "pts": 20, "current": -190, "z": 36.5, "y_shift": 18.7},
+        {"rx": 17.8, "ry": 27.8, "pts": 20, "current": -120, "z": 36.5, "y_shift": 15},
+        {"rx": 9.05, "ry": 19.05, "pts": 20, "current": 50, "z": -35.5, "y_shift": 24.7},
+        # Parte de arriba
+        {"rx": 17.8, "ry": 27.8, "pts": 20, "current": -160, "z": 36.5, "y_shift": 15},
+        {"rx": 14.765, "ry": 24.77, "pts": 20, "current": -190, "z": 36.5, "y_shift": 18.7},
+        {"rx": 9.05, "ry": 19.05, "pts": 20, "current": -25, "z": 36.5, "y_shift": 24.7}
+    ]
 
+    for cfg in elliptical_coils:
+        w = wire.Wire(
+            path=wire.Wire.EllipticalPath(rx=cfg["rx"], ry=cfg["ry"], pts=cfg["pts"]),
+            discretization_length=0.1,
+            current=cfg["current"]
+        ).Rotate(axis=(0,0,1), deg=90).Translate([0, cfg["y_shift"], cfg["z"]])
+        
+        sol.AddWire(w)
 
-	#If elliptical coils have to be added
-    """
-	#Parte de abajo
-    w1e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=-95).Rotate(axis=(0,0,1), deg=90).Translate([0,0,-35.5]).Translate([0,-24.7,0])
-	sol.AddWire(w1e)
+    if visualizar:
+        fig = plt.figure(figsize=(8, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        sol.mpl3d_PlotWires(ax)
+        plt.show()
 
-	
-    w2e = wire.Wire(path=wire.Wire.EllipticalPath(rx=14.765, ry=24.77, pts=20), discretization_length=0.1, current=-190).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,18.7,0])
-	sol.AddWire(w2e)
-
-    w3e = wire.Wire(path=wire.Wire.EllipticalPath(rx=17.8, ry=27.8, pts=20), discretization_length=0.1, current=-120).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0, 15,0])#I=-148
-	sol.AddWire(w3e)
-
-    w4e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=50).Rotate(axis=(0,0,1), deg=90).Translate([0,0,-35.5]).Translate([0,24.7,0])
-	sol.AddWire(w4e)
-	
-
-	#Parte de arriba
-
-    w5e = wire.Wire(path=wire.Wire.EllipticalPath(rx=17.8, ry=27.8, pts=20), discretization_length=0.1, current=-160).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0, 15,0])#I=150
-	sol.AddWire(w5e)
-
-    w6e = wire.Wire(path=wire.Wire.EllipticalPath(rx=14.765, ry=24.77, pts=20), discretization_length=0.1, current=-190).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,18.7,0])
-	sol.AddWire(w6e)
-
-    w7e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=-25).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,24.7,0])
-	sol.AddWire(w7e)
-	
-    """
-    
-
-    #Coil representation
-    
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(111, projection='3d')
-    sol.mpl3d_PlotWires(ax)
-    plt.show()
     
 
     B1 = sol.CalculateB(points=puntos)*(10**7)
@@ -218,7 +207,7 @@ def Espiras(puntos):
 
 			
 
-    return PMTs_malos, np.sum(Media), B_perp1, Coordenadas, Longitud
+    return PMTs_malos, np.sum(Media), B_perp1, Coordenadas
 	
 	
 
@@ -229,12 +218,12 @@ for r in range(len(x)):
 	for h in range(len(y)):
 		points2.append([x[r], y[h]])
 
-6
+
 
 #Extracción de parámetros
 
 Tapa_superior = Espiras(PMTs_top)
-Tapa_inferior = Espiras(PMTs_bottom)
+Tapa_inferior = Espiras(PMTs_bottom, visualizar=False)
 
 Media_superior = Tapa_superior[1]/6437
 Media_inferior = Tapa_inferior[1]/6437
@@ -245,7 +234,7 @@ for i in range(len(z)):
 	PMTs_paredes = []
 	for j in range(len(Angulo)):
 		PMTs_paredes.append([radio_PMT*np.cos(Angulo[j]), radio_PMT*np.sin(Angulo[j]), z[i]])
-	Paredes.append(Espiras(PMTs_paredes))
+	Paredes.append(Espiras(PMTs_paredes, visualizar=False))
 	
 Bperp1 = Paredes[0][2]
 Paredes_malos=[]
@@ -269,7 +258,6 @@ for p in range(1, len(Paredes)):
 
 #Resultados
 
-print(Longitud)
 Desviaciones = []
 Media_total = np.sum(Media)/(2*len(PMTs_top)+len(z)*len(Angulo))
 for i in range(len(Media)):
