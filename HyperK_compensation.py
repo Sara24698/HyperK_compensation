@@ -73,6 +73,8 @@ def Espiras(puntos):
                 discretization_length=0.1,
                 current=cfg["current"]
             ).Rotate(axis=(1,0,0), deg=-90).Translate([0,pos,0]).Translate([0,0,0.5])
+            sol.AddWire(w)
+
 
         elif i == 16:  # CompuertaPath
             w = wire.Wire(
@@ -80,6 +82,8 @@ def Espiras(puntos):
                 discretization_length=0.1,
                 current=I_rectangular
             ).Rotate(axis=(1,0,0), deg=-90).Translate([0,pos,0]).Translate([0,0,0.5])
+            sol.AddWire(w)
+
 
         else:  # Ordinary rectangular coils
             lado = np.sqrt(radio_cilindro**2 - pos**2)
@@ -88,33 +92,48 @@ def Espiras(puntos):
                 discretization_length=0.1,
                 current=I_rectangular
             ).Rotate(axis=(1,0,0), deg=-90).Translate([0,pos,0]).Translate([0,0,0.5])
+            sol.AddWire(w)
+
 
 	
 	
-	# circular loops I=1 A
+	# Configuración de los loops circulares
+    circular_loops = [
+        {"type": "PeriodicCable", "radius": radio_cilindro, "span": 3.0, "sag": 0.26, "pts_per_span": 50,
+        "current": 5*I_circulares, "translate": [0,0,36.5]},
+        {"type": "PeriodicCable", "radius": 25, "span": 3.0, "sag": 0.26, "pts_per_span": 50,
+        "current": I_circulares, "translate": [0,0,-35.5]},
+        {"type": "PeriodicCable", "radius": 26, "span": 3.0, "sag": 0.26, "pts_per_span": 50,
+        "current": I_circulares, "translate": [0,0,36.5]},
+        {"type": "CircularPath", "radius": radio_cilindro, "pts": 20, "current": 5*I_circulares, "translate": [0,0,-35.5]}
+    ]
 
+    # Crear y añadir cada loop
+    for cfg in circular_loops:
+        if cfg["type"] == "PeriodicCable":
+            w = wire.Wire(
+                path=wire.Wire.PeriodicCable(radius=cfg["radius"], span=cfg["span"], sag=cfg["sag"], pts_per_span=cfg["pts_per_span"]),
+                discretization_length=0.1,
+                current=cfg["current"]
+            ).Translate(cfg["translate"])
+        elif cfg["type"] == "CircularPath":
+            w = wire.Wire(
+                path=wire.Wire.CircularPath(radius=cfg["radius"], pts=cfg["pts"]),
+                discretization_length=0.1,
+                current=cfg["current"]
+            ).Translate(cfg["translate"])
+        
+        sol.AddWire(w)
 
-    w9c = wire.Wire(path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=5*I_circulares).Translate([0,0,36.5])
-    sol.AddWire(w9c)    
+    # Loops periódicos a lo largo del cilindro
+    for z_pos in pos_espira_circular:
+        w = wire.Wire(
+            path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50),
+            discretization_length=0.1,
+            current=I_circulares
+        ).Translate([0,0,z_pos])
+        sol.AddWire(w)
 
-    
-    w1c = wire.Wire(path=wire.Wire.PeriodicCable(radius=25, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0,-35.5])
-    sol.AddWire(w1c)
-
-    w2c = wire.Wire(path=wire.Wire.PeriodicCable(radius=26, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0, 36.5])
-    sol.AddWire(w2c)
-
-
-
-    w18c = wire.Wire(path=wire.Wire.CircularPath(radius=radio_cilindro, pts=20), discretization_length=0.1, current=5*I_circulares).Translate([0,0,-35.5])
-    sol.AddWire(w18c)
-
-
-
-
-    for j in range(len(pos_espira_circular)):
-        w17c = wire.Wire(path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0,pos_espira_circular[j]])
-        sol.AddWire(w17c)
 
     	
 
@@ -153,12 +172,12 @@ def Espiras(puntos):
     
 
     #Coil representation
-    """
+    
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111, projection='3d')
     sol.mpl3d_PlotWires(ax)
     plt.show()
-    """
+    
 
     B1 = sol.CalculateB(points=puntos)*(10**7)
 
