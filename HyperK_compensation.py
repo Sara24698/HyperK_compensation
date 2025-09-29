@@ -17,46 +17,33 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 
-
-
-
-
 #Parameter definition
 I_rectangular = 69
 I_circulares = -82
-
-
 Altura = 72
-pos_espira_rectangular = np.arange(-32,33,2)
+pos_espira_rectangular = np.arange(-32, 33, 2)
 radio_cilindro = 34
 radio_tapas = 26
 radio_tapas2 = 20
-pos_espira_circular = np.arange(-33.1,34.2,2.4)
-PMTs_vertical = np.arange(-33.4,32.5,0.707)
-ceros = np.zeros(len(PMTs_vertical))
-
-
-radio_PMT_tapas = 31.95
-radio_PMT= 32.4
-
+pos_espira_circular = np.arange(-33.1, 34.2, 2.4)
+PMTs_vertical = np.arange(-33.4, 32.5, 0.707)
 Angulo = np.arange(0, 6.315, 0.0218)
-z=np.arange(-32.522, 32.523, 0.707)
-limite = 100*np.ones(len(Angulo))
-Angulo_tapas=[]
-
-
-Media = []
-points2=[]
-PMTs_top=[]
-PMTs_bottom=[]
-Coordenadas = []
-Bperp_paredes=[]
-Optimizacion=[]
-Longitud=[]
-
 x = np.arange(-31.815, 32, 0.707)
 y = np.arange(-31.815, 32, 0.707)
+z = np.arange(-32.522, 32.523, 0.707)
 
+# --- Lids PMTs generation ---
+X_top, Y_top = np.meshgrid(x, y)
+distancia = np.sqrt(X_top**2 + Y_top**2)
+mask = distancia <= 32.01
+PMTs_top = np.c_[X_top[mask], Y_top[mask], np.full(np.sum(mask), 32.9)]
+PMTs_bottom = np.c_[X_top[mask], Y_top[mask], np.full(np.sum(mask), -32.9)]
+
+Media = [] 
+points2=[] 
+Coordenadas = [] 
+Bperp_paredes=[] 
+Optimizacion=[] 
 
 
 
@@ -64,51 +51,44 @@ y = np.arange(-31.815, 32, 0.707)
 
 def Espiras(puntos):
 
-	# rectangular loops I=1 A
-
+	# Adding rectangular loops
 	
-    w1r = wire.Wire(path=wire.Wire.RectangularPath(dx=np.sqrt(radio_cilindro**2 - pos_espira_rectangular[0]**2)*2, dy=Altura), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[0], 0]).Translate([0,0, 0.5])
-    sol = biotsavart.BiotSavart(wire=w1r)
+    sol = biotsavart.BiotSavart()
+    
+    for i, pos in enumerate(pos_espira_rectangular):
+        if i in [3, 8, 24, 29]:  # GondolaIDPath
+            config_gondola = {
+            3: {"lado":1.91, "semieje":0.5, "puerta":0.5, "current": I_rectangular},
+            8: {"lado":10.46, "semieje":1.98, "puerta":1.8, "current": I_rectangular},
+            24: {"lado":10.46, "semieje":1.98, "puerta":1.8, "current": -I_rectangular},
+            29: {"lado":1.91, "semieje":0.5, "puerta":0.5, "current": -I_rectangular}
+        }
+            cfg = config_gondola[i]
+            w = wire.Wire(
+                path=wire.Wire.GondolaIDPath(dx=np.sqrt(radio_cilindro**2 - pos**2)*2,
+                                            dy=Altura,
+                                            lado=cfg["lado"],
+                                            semieje=cfg["semieje"],
+                                            puerta=cfg["puerta"]),
+                discretization_length=0.1,
+                current=cfg["current"]
+            ).Rotate(axis=(1,0,0), deg=-90).Translate([0,pos,0]).Translate([0,0,0.5])
 
+        elif i == 16:  # CompuertaPath
+            w = wire.Wire(
+                path=wire.Wire.CompuertaPath(dx=np.sqrt(radio_cilindro**2 - pos**2)*2, dy=Altura, r=0.36),
+                discretization_length=0.1,
+                current=I_rectangular
+            ).Rotate(axis=(1,0,0), deg=-90).Translate([0,pos,0]).Translate([0,0,0.5])
 
+        else:  # Ordinary rectangular coils
+            lado = np.sqrt(radio_cilindro**2 - pos**2)
+            w = wire.Wire(
+                path=wire.Wire.RectangularPath(dx=lado*2, dy=Altura),
+                discretization_length=0.1,
+                current=I_rectangular
+            ).Rotate(axis=(1,0,0), deg=-90).Translate([0,pos,0]).Translate([0,0,0.5])
 
-
-    for i in range(1, len(pos_espira_rectangular)-1):
-        lado_espira_rect = np.sqrt(radio_cilindro**2 - pos_espira_rectangular[i]**2)
-        
-        if i ==3:
-            w2r = wire.Wire(path=wire.Wire.GondolaIDPath(dx=lado_espira_rect*2, dy=Altura, lado=1.91, semieje=0.5, puerta=0.5), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
-            sol.AddWire(w2r)
-            continue
-        
-        
-        if i ==8:
-            w2r = wire.Wire(path=wire.Wire.GondolaIDPath(dx=lado_espira_rect*2, dy=Altura, lado=10.46, semieje=1.98, puerta=1.8), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
-            sol.AddWire(w2r)
-            continue
-        
-        if i ==16:
-            w2r = wire.Wire(path=wire.Wire.CompuertaPath(dx=lado_espira_rect*2, dy=Altura, r = 0.36), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
-            sol.AddWire(w2r)
-            continue
-            
-        if i ==24:
-            w2r = wire.Wire(path=wire.Wire.GondolaIDPath(dx=lado_espira_rect*2, dy=Altura, lado=10.46, semieje=1.98, puerta=1.8), discretization_length=0.1, current=-I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Rotate(axis=(0, 0, 1), deg=180).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
-            sol.AddWire(w2r)
-            continue
-        
-        if i ==29:
-            w2r = wire.Wire(path=wire.Wire.GondolaIDPath(dx=lado_espira_rect*2, dy=Altura, lado=1.91, semieje=0.5, puerta=0.5), discretization_length=0.1, current=-I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Rotate(axis=(0, 0, 1), deg=180).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
-            sol.AddWire(w2r)
-            continue
-        
-        else:
-        
-            w2r = wire.Wire(path=wire.Wire.RectangularPath(dx=lado_espira_rect*2, dy=Altura), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
-            sol.AddWire(w2r)
-
-    w2r = wire.Wire(path=wire.Wire.RectangularPath(dx=np.sqrt(radio_cilindro**2 - pos_espira_rectangular[0]**2)*2, dy=Altura), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[-1], 0]).Translate([0,0, 0.5])
-    sol.AddWire(w2r)
 	
 	
 	# circular loops I=1 A
@@ -135,7 +115,6 @@ def Espiras(puntos):
     for j in range(len(pos_espira_circular)):
         w17c = wire.Wire(path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0,pos_espira_circular[j]])
         sol.AddWire(w17c)
-        Longitud.append(2*np.pi*radio_cilindro)
 
     	
 
@@ -231,14 +210,7 @@ for r in range(len(x)):
 	for h in range(len(y)):
 		points2.append([x[r], y[h]])
 
-
-for g in range(len(points2)):
-	distancia = np.sqrt(points2[g][0]**2+points2[g][1]**2)
-	if distancia <=32.01:
-		PMTs_top.append([points2[g][0], points2[g][1], 32.9])
-		PMTs_bottom.append([points2[g][0], points2[g][1], -32.9])
-
-
+6
 
 #Extracción de parámetros
 
