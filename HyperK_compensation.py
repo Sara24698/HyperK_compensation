@@ -21,9 +21,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 
 
-#Definicion de constantes
-
-
+#Parameter definition
 I_rectangular = 69
 I_circulares = -82
 
@@ -40,11 +38,6 @@ ceros = np.zeros(len(PMTs_vertical))
 
 radio_PMT_tapas = 31.95
 radio_PMT= 32.4
-Angulo1 = 0
-Angulo2 = np.pi/6
-Angulo3 = np.pi/4
-Angulo4 = np.pi/3
-Angulo5 = np.pi/2
 
 Angulo = np.arange(0, 6.315, 0.0218)
 z=np.arange(-32.522, 32.523, 0.707)
@@ -64,14 +57,10 @@ Longitud=[]
 x = np.arange(-31.815, 32, 0.707)
 y = np.arange(-31.815, 32, 0.707)
 
-Longitud=[]
-Longitud1=[]
-Longitud2=[]
-Longitud3=[]
 
 
 
-#Programa principal
+#Main function
 
 def Espiras(puntos):
 
@@ -80,8 +69,6 @@ def Espiras(puntos):
 	
     w1r = wire.Wire(path=wire.Wire.RectangularPath(dx=np.sqrt(radio_cilindro**2 - pos_espira_rectangular[0]**2)*2, dy=Altura), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[0], 0]).Translate([0,0, 0.5])
     sol = biotsavart.BiotSavart(wire=w1r)
-
-    Longitud.append(np.sqrt(radio_cilindro**2 - pos_espira_rectangular[0]**2)*4+Altura*2)
 
 
 
@@ -92,79 +79,61 @@ def Espiras(puntos):
         if i ==3:
             w2r = wire.Wire(path=wire.Wire.GondolaIDPath(dx=lado_espira_rect*2, dy=Altura, lado=1.91, semieje=0.5, puerta=0.5), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
             sol.AddWire(w2r)
-            Longitud.append(np.sqrt(radio_cilindro**2 - pos_espira_rectangular[i]**2)*4+Altura*2)
             continue
         
         
         if i ==8:
             w2r = wire.Wire(path=wire.Wire.GondolaIDPath(dx=lado_espira_rect*2, dy=Altura, lado=10.46, semieje=1.98, puerta=1.8), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
             sol.AddWire(w2r)
-            Longitud.append(np.sqrt(radio_cilindro**2 - pos_espira_rectangular[i]**2)*4+Altura*2)
             continue
         
         if i ==16:
             w2r = wire.Wire(path=wire.Wire.CompuertaPath(dx=lado_espira_rect*2, dy=Altura, r = 0.36), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
             sol.AddWire(w2r)
-            Longitud.append(np.sqrt(radio_cilindro**2 - pos_espira_rectangular[i]**2)*4+Altura*2)
             continue
             
         if i ==24:
             w2r = wire.Wire(path=wire.Wire.GondolaIDPath(dx=lado_espira_rect*2, dy=Altura, lado=10.46, semieje=1.98, puerta=1.8), discretization_length=0.1, current=-I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Rotate(axis=(0, 0, 1), deg=180).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
             sol.AddWire(w2r)
-            Longitud.append(np.sqrt(radio_cilindro**2 - pos_espira_rectangular[i]**2)*4+Altura*2)
             continue
         
         if i ==29:
             w2r = wire.Wire(path=wire.Wire.GondolaIDPath(dx=lado_espira_rect*2, dy=Altura, lado=1.91, semieje=0.5, puerta=0.5), discretization_length=0.1, current=-I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Rotate(axis=(0, 0, 1), deg=180).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
             sol.AddWire(w2r)
-            Longitud.append(np.sqrt(radio_cilindro**2 - pos_espira_rectangular[i]**2)*4+Altura*2)
             continue
         
         else:
         
             w2r = wire.Wire(path=wire.Wire.RectangularPath(dx=lado_espira_rect*2, dy=Altura), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[i],0]).Translate([0,0, 0.5])
             sol.AddWire(w2r)
-            Longitud.append(np.sqrt(radio_cilindro**2 - pos_espira_rectangular[i]**2)*4+Altura*2)
 
     w2r = wire.Wire(path=wire.Wire.RectangularPath(dx=np.sqrt(radio_cilindro**2 - pos_espira_rectangular[0]**2)*2, dy=Altura), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[-1], 0]).Translate([0,0, 0.5])
     sol.AddWire(w2r)
-    Longitud.append(np.sqrt(radio_cilindro**2 - pos_espira_rectangular[0]**2)*4+Altura*2)
 	
 	
 	# circular loops I=1 A
 
 
-    #w9c = wire.Wire(path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=5*I_circulares).Translate([0,0,36.5])
-    #sol.AddWire(w9c)    
+    w9c = wire.Wire(path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=5*I_circulares).Translate([0,0,36.5])
+    sol.AddWire(w9c)    
 
     
-    w9c = wire.Wire(path=wire.Wire.CircularPath(radius=radio_cilindro, pts=20), discretization_length=0.1, current=5*I_circulares).Translate([0,0,36.5])
-    sol.AddWire(w9c)
-    # Longitud.append(2*2*np.pi*radio_cilindro)
-	
-	
-    w1c = wire.Wire(path=wire.Wire.CircularPath(radius=25, pts=20), discretization_length=0.1, current=I_circulares).Translate([0,0, -35.5])
-    #w1c = wire.Wire(path=wire.Wire.PeriodicCable(radius=25, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0,-35.5])
+    w1c = wire.Wire(path=wire.Wire.PeriodicCable(radius=25, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0,-35.5])
     sol.AddWire(w1c)
 
-    w2c = wire.Wire(path=wire.Wire.CircularPath(radius=26, pts=20), discretization_length=0.1, current=I_circulares).Translate([0,0, 36.5])
-    #w2c = wire.Wire(path=wire.Wire.PeriodicCable(radius=26, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0, 36.5])
+    w2c = wire.Wire(path=wire.Wire.PeriodicCable(radius=26, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0, 36.5])
     sol.AddWire(w2c)
-    Longitud.append(2*np.pi*27)
 
 
 
     w18c = wire.Wire(path=wire.Wire.CircularPath(radius=radio_cilindro, pts=20), discretization_length=0.1, current=5*I_circulares).Translate([0,0,-35.5])
-    #w18c =  wire.Wire(path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=5*I_circulares).Translate([0,0,-35.5])
     sol.AddWire(w18c)
-    Longitud.append(2*3*np.pi*radio_cilindro)
 
 
 
 
     for j in range(len(pos_espira_circular)):
-        w17c = wire.Wire(path=wire.Wire.CircularPath(radius=radio_cilindro, pts=20), discretization_length=0.1, current=I_circulares).Translate([0,0,pos_espira_circular[j]])
-        #w17c = wire.Wire(path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0,pos_espira_circular[j]])
+        w17c = wire.Wire(path=wire.Wire.PeriodicCable(radius=radio_cilindro, span=3.0, sag=0.26, pts_per_span=50), discretization_length=0.1, current=I_circulares).Translate([0,0,pos_espira_circular[j]])
         sol.AddWire(w17c)
         Longitud.append(2*np.pi*radio_cilindro)
 
@@ -173,49 +142,44 @@ def Espiras(puntos):
 
 
 
-	
-
+	#If elliptical coils have to be added
+    """
 	#Parte de abajo
     w1e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=-95).Rotate(axis=(0,0,1), deg=90).Translate([0,0,-35.5]).Translate([0,-24.7,0])
-	#sol.AddWire(w1e)
-	#Longitud.append(2*np.pi*np.sqrt((9.05**2+19.05**2)/2))
+	sol.AddWire(w1e)
 
 	
     w2e = wire.Wire(path=wire.Wire.EllipticalPath(rx=14.765, ry=24.77, pts=20), discretization_length=0.1, current=-190).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,18.7,0])
-	#sol.AddWire(w2e)
-	#Longitud.append(2*np.pi*np.sqrt((14.765**2+24.77**2)/2))
+	sol.AddWire(w2e)
 
     w3e = wire.Wire(path=wire.Wire.EllipticalPath(rx=17.8, ry=27.8, pts=20), discretization_length=0.1, current=-120).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0, 15,0])#I=-148
-	#sol.AddWire(w3e)
-    Longitud.append(2*np.pi*np.sqrt((20.48**2+30.49**2)/2))
+	sol.AddWire(w3e)
 
     w4e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=50).Rotate(axis=(0,0,1), deg=90).Translate([0,0,-35.5]).Translate([0,24.7,0])
-	#sol.AddWire(w4e)
-	#Longitud.append(2*np.pi*np.sqrt((9.05**2+19.05**2)/2))
+	sol.AddWire(w4e)
 	
 
 	#Parte de arriba
 
     w5e = wire.Wire(path=wire.Wire.EllipticalPath(rx=17.8, ry=27.8, pts=20), discretization_length=0.1, current=-160).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0, 15,0])#I=150
-	#sol.AddWire(w5e)
-	#Longitud.append(2*np.pi*np.sqrt((20.48**2+30.49**2)/2))
+	sol.AddWire(w5e)
 
     w6e = wire.Wire(path=wire.Wire.EllipticalPath(rx=14.765, ry=24.77, pts=20), discretization_length=0.1, current=-190).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,18.7,0])
-	#sol.AddWire(w6e)
-	#Longitud.append(2*np.pi*np.sqrt((14.765**2+24.77**2)/2))
+	sol.AddWire(w6e)
 
     w7e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=-25).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,24.7,0])
-	#sol.AddWire(w7e)
-	#Longitud.append(2*np.pi*np.sqrt((9.05**2+19.05**2)/2))
+	sol.AddWire(w7e)
 	
-    
+    """
     
 
-    #fig = plt.figure(figsize=(8, 8))
-    #ax = fig.add_subplot(111, projection='3d')
-    #sol.mpl3d_PlotWires(ax)
-    #plt.show()
-
+    #Coil representation
+    """
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    sol.mpl3d_PlotWires(ax)
+    plt.show()
+    """
 
     B1 = sol.CalculateB(points=puntos)*(10**7)
 
@@ -226,7 +190,7 @@ def Espiras(puntos):
 
 
 
-    if len(puntos) == len(PMTs_bottom):#6437:#3214:#6437:
+    if len(puntos) == len(PMTs_bottom):
         for q in range(len(puntos)):
             Bx1.append(B1[q,0])
             By1.append(B1[q,1]+303)		
@@ -277,9 +241,6 @@ for g in range(len(points2)):
 
 
 #Extracción de parámetros
-
-
-
 
 Tapa_superior = Espiras(PMTs_top)
 Tapa_inferior = Espiras(PMTs_bottom)
@@ -339,14 +300,14 @@ print('El numero de PMTs malos total es', PMTs_final)
 print('El numero de PMTs en la pared es', len(z)*len(Angulo), 'en cada una de las tapas', len(PMTs_top), 'y en total en el detector hay', len(z)*len(Angulo)+2*len(PMTs_top))
 print('El porcentaje de PMTs malos es', Porcentaje)
 
-#df = pd.DataFrame(Coordenadas, columns=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Bp', 'faceid'])
+df = pd.DataFrame(Coordenadas, columns=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Bp', 'faceid'])
 
-# Guardar en un archivo Excel
-#df.to_excel('./Gondolas.xlsx', index=False)
+# Saving in an excel file
+df.to_excel('./Gondolas.xlsx', index=False)
 
 
 
-#Histograma
+#Histogram
 
 data = np.concatenate((Tapa_superior[2], Tapa_inferior[2], Bperp_paredes))
 intervalos = np.arange(0, 210, 5) #calculamos los extremos de los intervalos
@@ -371,7 +332,7 @@ plt.show()
 
 
 
-#Puntos malos en el cilindro
+#PMTs with excess visualizing
 
 Coord_x=[]
 Coord_y=[]
