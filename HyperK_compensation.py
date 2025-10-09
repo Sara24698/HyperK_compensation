@@ -37,30 +37,45 @@ radio_PMT_tapas = 31.95
 radio_PMT= 32.4
 
 
-Angulo = np.arange(0, 6.315, 0.0218)
-z=np.arange(-32.522, 32.523, 0.707)
-limite = 100*np.ones(len(Angulo))
-Angulo_tapas=[]
 
 
 Media = []
 points2=[]
 PMTs_top=[]
 PMTs_bottom=[]
+PMTs_paredes = []
 Coordenadas = []
-Bperp_paredes=[]
-Optimizacion=[]
 Longitud=[]
 
+
+#Definición de puntos
 x = np.arange(-31.815, 32, 0.707)
 y = np.arange(-31.815, 32, 0.707)
 
-Longitud=[]
+Angulo_vuelta = np.arange(0, 6.315, 0.0218)
+z=np.arange(-32.522, 32.523, 0.707)
+Angulo = np.tile(Angulo_vuelta, len(z))
 
 
 
-#Programa principal
+for r in range(len(x)):
+	for h in range(len(y)):
+		points2.append([x[r], y[h]])
 
+
+for g in range(len(points2)):
+	distancia = np.sqrt(points2[g][0]**2+points2[g][1]**2)
+	if distancia <=32.01:
+		PMTs_top.append([points2[g][0], points2[g][1], 32.9])
+		PMTs_bottom.append([points2[g][0], points2[g][1], -32.9])
+
+
+for i in range(len(z)):
+	for j in range(len(Angulo_vuelta)):
+		PMTs_paredes.append([radio_PMT*np.cos(Angulo_vuelta[j]), radio_PMT*np.sin(Angulo_vuelta[j]), z[i]])
+          
+
+#Función principal
 def Sistema_compensacion(puntos, visualize = False, elipticas = False):
 
 	# rectangular loops I=1 A
@@ -150,9 +165,6 @@ def Sistema_compensacion(puntos, visualize = False, elipticas = False):
 
     	
 
-
-
-
 	
     if elipticas == True:
         #Parte de abajo
@@ -197,30 +209,34 @@ def Sistema_compensacion(puntos, visualize = False, elipticas = False):
         plt.show()
 
 
-    B1 = sol.CalculateB(points=puntos)*(10**7)
+    B = sol.CalculateB(points=puntos)*(10**7)
 
-    Bx1=[]
-    By1=[]
-    Bz1=[]
-    B_perp1=[]
+    Bx=[]
+    By=[]
+    Bz=[]
+    B_perp=[]
 
 
 
     if len(puntos) == len(PMTs_bottom):
         for q in range(len(puntos)):
-            Bx1.append(B1[q,0])
-            By1.append(B1[q,1]+303)		
-            Bz1.append(B1[q,2]-366)
-            B_perp1.append(np.sqrt(B1[q,0]**2+(B1[q,1]+303)**2))
-            Media.append(np.sqrt(B1[q,0]**2+(B1[q,1]+303)**2))
+            Bx.append(B[q,0])
+            By.append(B[q,1]+303)		
+            Bz.append(B[q,2]-366)
+            B_perp.append(np.sqrt(B[q,0]**2+(B[q,1]+303)**2))
+            #Bx = [B[q,0] for q in range (len(puntos))]
+            #By = [B[q,1]+303 for q in range (len(puntos))]
+            #Bz = [B[q,2]-366 for q in range (len(puntos))]
+            
+
 		
     else:
         for l in range(len(puntos)):
-            Bx1.append(B1[l,0])
-            By1.append(B1[l,1]+303)		
-            Bz1.append(B1[l,2]-366)
-            B_perp1.append(np.sqrt((B1[l,0]*np.sin(Angulo[l])-(B1[l,1]+303)*np.cos(Angulo[l]))**2+(B1[l,2]-366)**2))
-            Media.append(np.sqrt((B1[l,0]*np.sin(Angulo[l])-(B1[l,1]+303)*np.cos(Angulo[l]))**2+(B1[l,2]-366)**2))
+            Bx.append(B[l,0])
+            By.append(B[l,1]+303)		
+            Bz.append(B[l,2]-366)
+            B_perp.append(np.sqrt((B[l,0]*np.sin(Angulo[l])-(B[l,1]+303)*np.cos(Angulo[l]))**2+(B[l,2]-366)**2))
+            
 		
 
 		
@@ -228,67 +244,23 @@ def Sistema_compensacion(puntos, visualize = False, elipticas = False):
     
     PMTs_malos = 0
 
-    for alfa in range(len(B_perp1)):
-        #Coordenadas.append([puntos[alfa][0], puntos[alfa][1], puntos[alfa][2], Bx1[alfa], By1[alfa], Bz1[alfa], B_perp1[alfa], 1 if puntos[alfa][2] == 32.9 else 3 if puntos[alfa][2] == -32.9 else 2])
-        if np.abs(B_perp1[alfa]) > 100:
+    for alfa in range(len(B_perp)):
+        Coordenadas.append([puntos[alfa][0], puntos[alfa][1], puntos[alfa][2], Bx[alfa], By[alfa], Bz[alfa], B_perp[alfa], 1 if puntos[alfa][2] == 32.9 else 3 if puntos[alfa][2] == -32.9 else 2])
+        if np.abs(B_perp[alfa]) > 100:
             PMTs_malos = PMTs_malos+1
-            Coordenadas.append([puntos[alfa]])
 
 			
 
-    return PMTs_malos, np.sum(Media), B_perp1, Coordenadas, Longitud
+    return PMTs_malos, B_perp, Coordenadas
 	
 	
-
-
-#Definición de puntos
-
-for r in range(len(x)):
-	for h in range(len(y)):
-		points2.append([x[r], y[h]])
-
-
-for g in range(len(points2)):
-	distancia = np.sqrt(points2[g][0]**2+points2[g][1]**2)
-	if distancia <=32.01:
-		PMTs_top.append([points2[g][0], points2[g][1], 32.9])
-		PMTs_bottom.append([points2[g][0], points2[g][1], -32.9])
 
 
 #Extracción de parámetros
 
-
-
-
-Tapa_superior = Sistema_compensacion(PMTs_top, visualize=True, elipticas=False)
-Tapa_inferior = Sistema_compensacion(PMTs_bottom, visualize=False, elipticas=False)
-
-Media_superior = Tapa_superior[1]/6437
-Media_inferior = Tapa_inferior[1]/6437
-Longitudes = np.sum(Tapa_inferior[4])
-
-Paredes = []
-for i in range(len(z)):
-	PMTs_paredes = []
-	for j in range(len(Angulo)):
-		PMTs_paredes.append([radio_PMT*np.cos(Angulo[j]), radio_PMT*np.sin(Angulo[j]), z[i]])
-	Paredes.append(Sistema_compensacion(PMTs_paredes, visualize=False, elipticas=False))
-	
-Bperp1 = Paredes[0][2]
-Paredes_malos=[]
-Media_paredes=[]
-Coordenadas_paredes=[]
-for h in range(len(Paredes)):
-	Paredes_malos.append(Paredes[h][0])
-	Media_paredes.append(Paredes[h][1])
-	Coordenadas_paredes.append(Paredes[h][3])
-
-for p in range(1, len(Paredes)):
-	if p == 1:
-		Bperp_paredes = np.concatenate((Bperp1, Paredes[p][2]))
-		continue
-	Bperp_paredes = np.concatenate((Bperp_paredes, Paredes[p][2]))
-	
+PMTs_malos_top, B_perp_top, Coordenadas_top = Sistema_compensacion(PMTs_top, visualize=True, elipticas=False)
+PMTs_malos_bottom, B_perp_bottom, Coordenadas_bottom= Sistema_compensacion(PMTs_bottom, visualize=False, elipticas=False)
+PMTs_malos_paredes, B_perp_paredes, Coordenadas_paredes = Sistema_compensacion(PMTs_paredes, visualize=False, elipticas=False)	
 	
 	
 
@@ -297,25 +269,25 @@ for p in range(1, len(Paredes)):
 #Resultados
 
 Desviaciones = []
-Media_total = np.sum(Media)/(2*len(PMTs_top)+len(z)*len(Angulo))
-for i in range(len(Media)):
-	Desviaciones.append((Media[i]-Media_total)**2)
+B_perp_total = B_perp_bottom+B_perp_top+B_perp_paredes
+Media_total = np.sum(B_perp_total)/len(B_perp_total)
+for i in range(len(B_perp_total)):
+	Desviaciones.append((B_perp_total[i]-Media_total)**2)
 	
-Desviacion_est = np.sqrt(np.sum(Desviaciones)/len(Media))
-print(Desviacion_est)
-print('La media total es', Media_total)
-print(Media_superior, Media_inferior, np.sum(Media_paredes)/26970)
-print('La media del campo magnetico es de', Media_total)
-print('El numero de PMTs malos en top es', Tapa_superior[0])
-print('El numero de PMTs malos en bottom es', Tapa_inferior[0])
-print('El numero de PMTs malos en las paredes es', np.sum(Paredes_malos))
-print('La cantidad de cable que necesitamos es de', Longitudes, 'm')
+Desviacion_est = np.sqrt(np.sum(Desviaciones)/len(B_perp_total))
+PMTs_malos_total = PMTs_malos_paredes+PMTs_bottom+PMTs_malos_top
 
-PMTs_final = np.sum(Paredes_malos) + Tapa_superior[0] + Tapa_inferior[0]
-Porcentaje = PMTs_final*100/(len(z)*len(Angulo)+2*len(PMTs_top))
-print('El numero de PMTs malos total es', PMTs_final)
-print('El numero de PMTs en la pared es', len(z)*len(Angulo), 'en cada una de las tapas', len(PMTs_top), 'y en total en el detector hay', len(z)*len(Angulo)+2*len(PMTs_top))
-print('El porcentaje de PMTs malos es', Porcentaje)
+
+print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
+print(f"La media del campo magnético es de {Media_total}")
+print(f"El número de PMTs malos en top es {PMTs_malos_top}")
+print(f"El número de PMTs malos en bottom es {PMTs_malos_bottom}")
+print(f"El número de PMTs malos en las paredes es {PMTs_malos_paredes}")
+
+print(f"El número total de PMTs malos es {PMTs_malos_total}")
+print(f"El número de PMTs en la pared es {len(z) * len(Angulo)}, en cada una de las tapas {len(PMTs_top)}, y en total en el detector hay {len(B_perp_total)}")
+print(f"El porcentaje de PMTs malos es {PMTs_malos_total * 100 / len(B_perp_total):.2f}%")
+
 
 #df = pd.DataFrame(Coordenadas, columns=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Bp', 'faceid'])
 
@@ -326,9 +298,8 @@ print('El porcentaje de PMTs malos es', Porcentaje)
 
 #Histograma
 
-data = np.concatenate((Tapa_superior[2], Tapa_inferior[2], Bperp_paredes))
 intervalos = np.arange(0, 210, 5) #calculamos los extremos de los intervalos
-plt.hist(x=data, bins=intervalos, color='#F2AB6D', rwidth=0.85)
+plt.hist(x=B_perp_total, bins=intervalos, color="#080049", rwidth=0.85)
 plt.xlabel("Remaining magnetic field perpendicular to PMT (mG)")
 plt.ylabel("Number of PMTs")
 plt.ylim(0,6500)
@@ -337,7 +308,7 @@ plt.title("$B_{perp}$ distribution for all the PMTs")
 textstr = '\n'.join((
     r'$\mu=%.2f\ \mathrm{mG}$' % (Media_total, ),
     r'$\sigma=%.2f\ \mathrm{mG}$' % (Desviacion_est, ),
-    r'Prop. excess=%.2f\ \%%' % (Porcentaje, )
+    r'Prop. excess=%.2f%' % (PMTs_malos_total * 100 / len(B_perp_total), )
 ))
 
     

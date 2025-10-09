@@ -101,16 +101,7 @@ class Wire:
             p = self.path    
 
         ax.plot(p[:, 0], p[:, 1], p[:, 2], plt_style)
-        #ax.set_xlabel('X')
-        #ax.set_ylabel('Y')
-        #ax.set_zlabel('Z')
 
-        # make all axes the same
-        #max_a = np.array((p[:, 0], p[:, 1], p[:, 2])).max()
-
-        #ax.set_xlim3d(min(p[:, 0]), max_a)
-        #ax.set_ylim3d(min(p[:, 1]), max_a)
-        #ax.set_zlim3d(min(p[:, 2]), max_a)
 
 
         if show:
@@ -211,7 +202,7 @@ class Wire:
         # Combinar todo
         vertices = np.vstack((-rect_vertices, -semicircle, -top_right, [-rect_vertices[0]]))
 
-        print(vertices)
+
 
         """
         # Visualización
