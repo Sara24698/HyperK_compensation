@@ -1,0 +1,13 @@
+prefix=c:/Users/User/Desktop/HyperK_compensation/.conda/Library
+exec_prefix=c:/Users/User/Desktop/HyperK_compensation/.conda/Library
+libdir=c:/Users/User/Desktop/HyperK_compensation/.conda/Library/lib
+sharedlibdir=c:/Users/User/Desktop/HyperK_compensation/.conda/Library/lib
+includedir=c:/Users/User/Desktop/HyperK_compensation/.conda/Library/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.3.1
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}

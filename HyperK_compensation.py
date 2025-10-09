@@ -75,7 +75,7 @@ Longitud3=[]
 
 #Programa principal
 
-def Espiras(puntos):
+def Sistema_compensacion(puntos, visualize = False):
 
 	# rectangular loops I=1 A
 
@@ -204,11 +204,11 @@ def Espiras(puntos):
 	
     
     
-
-    #fig = plt.figure(figsize=(8, 8))
-    #ax = fig.add_subplot(111, projection='3d')
-    #sol.mpl3d_PlotWires(ax)
-    #plt.show()
+    if visualize == True:
+        fig = plt.figure(figsize=(8, 8))
+        ax = fig.add_subplot(111, projection='3d')
+        sol.mpl3d_PlotWires(ax)
+        plt.show()
 
 
     B1 = sol.CalculateB(points=puntos)*(10**7)
@@ -274,8 +274,8 @@ for g in range(len(points2)):
 
 
 
-Tapa_superior = Espiras(PMTs_top)
-Tapa_inferior = Espiras(PMTs_bottom)
+Tapa_superior = Sistema_compensacion(PMTs_top, visualize=True)
+Tapa_inferior = Sistema_compensacion(PMTs_bottom, visualize=False)
 
 Media_superior = Tapa_superior[1]/6437
 Media_inferior = Tapa_inferior[1]/6437
@@ -286,7 +286,7 @@ for i in range(len(z)):
 	PMTs_paredes = []
 	for j in range(len(Angulo)):
 		PMTs_paredes.append([radio_PMT*np.cos(Angulo[j]), radio_PMT*np.sin(Angulo[j]), z[i]])
-	Paredes.append(Espiras(PMTs_paredes))
+	Paredes.append(Sistema_compensacion(PMTs_paredes, visualize=False))
 	
 Bperp1 = Paredes[0][2]
 Paredes_malos=[]
