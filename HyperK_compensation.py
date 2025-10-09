@@ -16,13 +16,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-df= pd.read_csv('./efecto_pos1.csv', header=None, sep=';',names=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Btotal', 'Bx_T', 'By_T', 'Bz_T'])
-df = df.drop(['Btotal','Bx_T', 'By_T', 'Bz_T'], axis=1)
-
-
-
-
-
 #Definicion de constantes
 
 
@@ -37,16 +30,12 @@ radio_tapas = 26
 radio_tapas2 = 20
 pos_espira_circular = np.arange(-33.1,34.2,2.4)
 PMTs_vertical = np.arange(-33.4,32.5,0.707)
-ceros = np.zeros(len(PMTs_vertical))
+
 
 
 radio_PMT_tapas = 31.95
 radio_PMT= 32.4
-Angulo1 = 0
-Angulo2 = np.pi/6
-Angulo3 = np.pi/4
-Angulo4 = np.pi/3
-Angulo5 = np.pi/2
+
 
 Angulo = np.arange(0, 6.315, 0.0218)
 z=np.arange(-32.522, 32.523, 0.707)
@@ -67,15 +56,12 @@ x = np.arange(-31.815, 32, 0.707)
 y = np.arange(-31.815, 32, 0.707)
 
 Longitud=[]
-Longitud1=[]
-Longitud2=[]
-Longitud3=[]
 
 
 
 #Programa principal
 
-def Sistema_compensacion(puntos, visualize = False):
+def Sistema_compensacion(puntos, visualize = False, elipticas = False):
 
 	# rectangular loops I=1 A
 
@@ -168,39 +154,39 @@ def Sistema_compensacion(puntos, visualize = False):
 
 
 	
+    if elipticas == True:
+        #Parte de abajo
+        w1e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=-95).Rotate(axis=(0,0,1), deg=90).Translate([0,0,-35.5]).Translate([0,-24.7,0])
+        sol.AddWire(w1e)
+        Longitud.append(2*np.pi*np.sqrt((9.05**2+19.05**2)/2))
 
-	#Parte de abajo
-    w1e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=-95).Rotate(axis=(0,0,1), deg=90).Translate([0,0,-35.5]).Translate([0,-24.7,0])
-	#sol.AddWire(w1e)
-	#Longitud.append(2*np.pi*np.sqrt((9.05**2+19.05**2)/2))
+        
+        w2e = wire.Wire(path=wire.Wire.EllipticalPath(rx=14.765, ry=24.77, pts=20), discretization_length=0.1, current=-190).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,18.7,0])
+        sol.AddWire(w2e)
+        Longitud.append(2*np.pi*np.sqrt((14.765**2+24.77**2)/2))
 
-	
-    w2e = wire.Wire(path=wire.Wire.EllipticalPath(rx=14.765, ry=24.77, pts=20), discretization_length=0.1, current=-190).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,18.7,0])
-	#sol.AddWire(w2e)
-	#Longitud.append(2*np.pi*np.sqrt((14.765**2+24.77**2)/2))
+        w3e = wire.Wire(path=wire.Wire.EllipticalPath(rx=17.8, ry=27.8, pts=20), discretization_length=0.1, current=-120).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0, 15,0])#I=-148
+        sol.AddWire(w3e)
+        Longitud.append(2*np.pi*np.sqrt((20.48**2+30.49**2)/2))
 
-    w3e = wire.Wire(path=wire.Wire.EllipticalPath(rx=17.8, ry=27.8, pts=20), discretization_length=0.1, current=-120).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0, 15,0])#I=-148
-	#sol.AddWire(w3e)
-    Longitud.append(2*np.pi*np.sqrt((20.48**2+30.49**2)/2))
+        w4e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=50).Rotate(axis=(0,0,1), deg=90).Translate([0,0,-35.5]).Translate([0,24.7,0])
+        sol.AddWire(w4e)
+        Longitud.append(2*np.pi*np.sqrt((9.05**2+19.05**2)/2))
+        
 
-    w4e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=50).Rotate(axis=(0,0,1), deg=90).Translate([0,0,-35.5]).Translate([0,24.7,0])
-	#sol.AddWire(w4e)
-	#Longitud.append(2*np.pi*np.sqrt((9.05**2+19.05**2)/2))
-	
+        #Parte de arriba
 
-	#Parte de arriba
+        w5e = wire.Wire(path=wire.Wire.EllipticalPath(rx=17.8, ry=27.8, pts=20), discretization_length=0.1, current=-160).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0, 15,0])#I=150
+        sol.AddWire(w5e)
+        Longitud.append(2*np.pi*np.sqrt((20.48**2+30.49**2)/2))
 
-    w5e = wire.Wire(path=wire.Wire.EllipticalPath(rx=17.8, ry=27.8, pts=20), discretization_length=0.1, current=-160).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0, 15,0])#I=150
-	#sol.AddWire(w5e)
-	#Longitud.append(2*np.pi*np.sqrt((20.48**2+30.49**2)/2))
+        w6e = wire.Wire(path=wire.Wire.EllipticalPath(rx=14.765, ry=24.77, pts=20), discretization_length=0.1, current=-190).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,18.7,0])
+        sol.AddWire(w6e)
+        Longitud.append(2*np.pi*np.sqrt((14.765**2+24.77**2)/2))
 
-    w6e = wire.Wire(path=wire.Wire.EllipticalPath(rx=14.765, ry=24.77, pts=20), discretization_length=0.1, current=-190).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,18.7,0])
-	#sol.AddWire(w6e)
-	#Longitud.append(2*np.pi*np.sqrt((14.765**2+24.77**2)/2))
-
-    w7e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=-25).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,24.7,0])
-	#sol.AddWire(w7e)
-	#Longitud.append(2*np.pi*np.sqrt((9.05**2+19.05**2)/2))
+        w7e = wire.Wire(path=wire.Wire.EllipticalPath(rx=9.05, ry=19.05, pts=20), discretization_length=0.1, current=-25).Rotate(axis=(0,0,1), deg=90).Translate([0,0,36.5]).Translate([0,24.7,0])
+        sol.AddWire(w7e)
+        Longitud.append(2*np.pi*np.sqrt((9.05**2+19.05**2)/2))
 	
     
     
@@ -274,8 +260,8 @@ for g in range(len(points2)):
 
 
 
-Tapa_superior = Sistema_compensacion(PMTs_top, visualize=True)
-Tapa_inferior = Sistema_compensacion(PMTs_bottom, visualize=False)
+Tapa_superior = Sistema_compensacion(PMTs_top, visualize=True, elipticas=False)
+Tapa_inferior = Sistema_compensacion(PMTs_bottom, visualize=False, elipticas=False)
 
 Media_superior = Tapa_superior[1]/6437
 Media_inferior = Tapa_inferior[1]/6437
@@ -286,7 +272,7 @@ for i in range(len(z)):
 	PMTs_paredes = []
 	for j in range(len(Angulo)):
 		PMTs_paredes.append([radio_PMT*np.cos(Angulo[j]), radio_PMT*np.sin(Angulo[j]), z[i]])
-	Paredes.append(Sistema_compensacion(PMTs_paredes, visualize=False))
+	Paredes.append(Sistema_compensacion(PMTs_paredes, visualize=False, elipticas=False))
 	
 Bperp1 = Paredes[0][2]
 Paredes_malos=[]
