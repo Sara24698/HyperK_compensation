@@ -238,113 +238,62 @@ def Sistema_compensacion(puntos, visualize = False, elipticas = False):
 			
 
     return PMTs_malos, B_perp, Coordenadas
+
+def export_data(Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes, nombre_archivo):
+        Coordenadas = np.concatenate((Coordenadas_top, Coordenadas_top, Coordenadas_paredes))
+        df = pd.DataFrame(Coordenadas, columns=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Bp', 'faceid'])
+        df.to_csv('./'+nombre_archivo+'.csv', index=False, sep=',')
+
+def hist(nombre, B_perp_total, Media_total, Desviacion_est, PMTs_malos_total):
+        intervalos = np.arange(0, 210, 5) #calculamos los extremos de los intervalos
+        plt.hist(x=B_perp_total, bins=intervalos, color="#080049", rwidth=0.85)
+        plt.xlabel("Remaining magnetic field perpendicular to PMT (mG)")
+        plt.ylabel("Number of PMTs")
+        plt.ylim(0,6500)
+        plt.xticks(np.arange(0, 200, 25))
+        plt.title("$B_{perp}$ distribution for all the PMTs")
+        textstr = '\n'.join((
+            r'$\mu=%.2f\ \mathrm{mG}$' % (Media_total, ),
+            r'$\sigma=%.2f\ \mathrm{mG}$' % (Desviacion_est, ),
+            r'Prop. excess=%.2f\ \%%' % (PMTs_malos_total * 100 / len(B_perp_total), )
+        ))
+        
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+
+        plt.text(140,2000, textstr, fontsize=10, bbox=props)
+        plt.savefig('./'+nombre+'.png')	
 	
-	
-
-
-#Extracción de parámetros
-
-PMTs_malos_top, B_perp_top, Coordenadas_top = Sistema_compensacion(PMTs_top, visualize=True, elipticas=False)
-PMTs_malos_bottom, B_perp_bottom, Coordenadas_bottom= Sistema_compensacion(PMTs_bottom, visualize=False, elipticas=False)
-PMTs_malos_paredes, B_perp_paredes, Coordenadas_paredes = Sistema_compensacion(PMTs_paredes, visualize=False, elipticas=False)	
-	
-	
-
-
 
 #Resultados
-
-B_perp_total = np.concatenate((B_perp_bottom, B_perp_top, B_perp_paredes))
-Media_total = np.sum(B_perp_total)/len(B_perp_total)
-#for i in range(len(B_perp_total)):
-	#Desviaciones.append((B_perp_total[i]-Media_total)**2)
-Desviaciones = [(B_perp_total[i]-Media_total)**2 for i in range(len(B_perp_total))]
+def resultados(export=True, histogram=True):
+    PMTs_malos_top, B_perp_top, Coordenadas_top = Sistema_compensacion(PMTs_top, visualize=True, elipticas=False)
+    PMTs_malos_bottom, B_perp_bottom, Coordenadas_bottom= Sistema_compensacion(PMTs_bottom, visualize=False, elipticas=False)
+    PMTs_malos_paredes, B_perp_paredes, Coordenadas_paredes = Sistema_compensacion(PMTs_paredes, visualize=False, elipticas=False)	
 	
-Desviacion_est = np.sqrt(np.sum(Desviaciones)/len(B_perp_total))
-PMTs_malos_total = PMTs_malos_paredes+PMTs_malos_bottom+PMTs_malos_top
+    B_perp_total = np.concatenate((B_perp_bottom, B_perp_top, B_perp_paredes))
+    Media_total = np.sum(B_perp_total)/len(B_perp_total)
+    Desviaciones = [(B_perp_total[i]-Media_total)**2 for i in range(len(B_perp_total))]
+        
+    Desviacion_est = np.sqrt(np.sum(Desviaciones)/len(B_perp_total))
+    PMTs_malos_total = PMTs_malos_paredes+PMTs_malos_bottom+PMTs_malos_top
 
 
-print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
-print(f"El número de PMTs malos en top es {PMTs_malos_top}")
-print(f"El número de PMTs malos en bottom es {PMTs_malos_bottom}")
-print(f"El número de PMTs malos en las paredes es {PMTs_malos_paredes}")
+    print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
+    print(f"El número de PMTs malos en top es {PMTs_malos_top}")
+    print(f"El número de PMTs malos en bottom es {PMTs_malos_bottom}")
+    print(f"El número de PMTs malos en las paredes es {PMTs_malos_paredes}")
 
-print(f"El número total de PMTs malos es {PMTs_malos_total}")
-print(f"El número de PMTs en la pared es {len(z) * len(Angulo)}, en cada una de las tapas {len(PMTs_top)}, y en total en el detector hay {len(B_perp_total)}")
-print(f"El porcentaje de PMTs malos es {PMTs_malos_total * 100 / len(B_perp_total):.2f}%")
+    print(f"El número total de PMTs malos es {PMTs_malos_total}")
+    print(f"El número de PMTs en la pared es {len(z) * len(Angulo)}, en cada una de las tapas {len(PMTs_top)}, y en total en el detector hay {len(B_perp_total)}")
+    print(f"El porcentaje de PMTs malos es {PMTs_malos_total * 100 / len(B_perp_total):.2f}%")
 
+    if export==True:
+        export_data(Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes, nombre_archivo='1º')
 
-#df = pd.DataFrame(Coordenadas, columns=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Bp', 'faceid'])
-
-# Guardar en un archivo Excel
-#df.to_excel('./Gondolas.xlsx', index=False)
-
-
-
-#Histograma
-
-intervalos = np.arange(0, 210, 5) #calculamos los extremos de los intervalos
-plt.hist(x=B_perp_total, bins=intervalos, color="#080049", rwidth=0.85)
-plt.xlabel("Remaining magnetic field perpendicular to PMT (mG)")
-plt.ylabel("Number of PMTs")
-plt.ylim(0,6500)
-plt.xticks(np.arange(0, 200, 25))
-plt.title("$B_{perp}$ distribution for all the PMTs")
-textstr = '\n'.join((
-    r'$\mu=%.2f\ \mathrm{mG}$' % (Media_total, ),
-    r'$\sigma=%.2f\ \mathrm{mG}$' % (Desviacion_est, ),
-    r'Prop. excess=%.2f\ \%%' % (PMTs_malos_total * 100 / len(B_perp_total), )
-))
-
-
+    if histogram==True:
+         hist('1º', B_perp_total, Media_total, Desviacion_est, PMTs_malos_total)
+         
 
     
-props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+resultados(export=True, histogram=True)
 
-plt.text(140,2000, textstr, fontsize=10, bbox=props)
-plt.show()
-
-"""
-
-#Puntos malos en el cilindro
-
-Coord_x=[]
-Coord_y=[]
-Coord_z=[]
-
-x_top=[]
-y_top=[]
-z_top=[]
-
-x_bottom=[]
-y_bottom=[]
-z_bottom=[]
-
-
-
-
-for indice in range(len(Coordenadas_paredes)):
-	Coord_x.append(Coordenadas_paredes[indice][0])	 
-	Coord_y.append(Coordenadas_paredes[indice][1])	 
-	Coord_z.append(Coordenadas_paredes[indice][2])
-
-
-for indice_top in range(len(Tapa_superior[3])):
-	x_top.append(Tapa_superior[3][indice_top][0])	 
-	y_top.append(Tapa_superior[3][indice_top][1])	 
-	z_top.append(Tapa_superior[3][indice_top][2])
-
-
-for indice_bottom in range(len(Tapa_inferior[3])):
-	x_bottom.append(Tapa_inferior[3][indice_bottom][0])	 
-	y_bottom.append(Tapa_inferior[3][indice_bottom][1])	 
-	z_bottom.append(Tapa_inferior[3][indice_bottom][2])	
-
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-
-
-ax.scatter(x_bottom, y_bottom, z_bottom, label ='PMTs bottom')
-plt.plot()
-"""
