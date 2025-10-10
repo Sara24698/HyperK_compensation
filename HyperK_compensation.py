@@ -211,31 +211,17 @@ def Sistema_compensacion(puntos, visualize = False, elipticas = False):
 
     B = sol.CalculateB(points=puntos)*(10**7)
 
-    Bx=[]
-    By=[]
-    Bz=[]
+    Bx = [B[q,0] for q in range (len(puntos))]
+    By = [B[q,1]+303 for q in range (len(puntos))]
+    Bz = [B[q,2]-366 for q in range (len(puntos))]
     B_perp=[]
 
-
-
-    if len(puntos) == len(PMTs_bottom):
-        for q in range(len(puntos)):
-            Bx.append(B[q,0])
-            By.append(B[q,1]+303)		
-            Bz.append(B[q,2]-366)
+    for q in range(len(puntos)):
+        if len(puntos) == len(PMTs_bottom):
             B_perp.append(np.sqrt(B[q,0]**2+(B[q,1]+303)**2))
-            #Bx = [B[q,0] for q in range (len(puntos))]
-            #By = [B[q,1]+303 for q in range (len(puntos))]
-            #Bz = [B[q,2]-366 for q in range (len(puntos))]
-            
-
-		
-    else:
-        for l in range(len(puntos)):
-            Bx.append(B[l,0])
-            By.append(B[l,1]+303)		
-            Bz.append(B[l,2]-366)
-            B_perp.append(np.sqrt((B[l,0]*np.sin(Angulo[l])-(B[l,1]+303)*np.cos(Angulo[l]))**2+(B[l,2]-366)**2))
+            		
+        else:
+            B_perp.append(np.sqrt((B[q,0]*np.sin(Angulo[q])-(B[q,1]+303)*np.cos(Angulo[q]))**2+(B[q,2]-366)**2))
             
 		
 
@@ -268,18 +254,17 @@ PMTs_malos_paredes, B_perp_paredes, Coordenadas_paredes = Sistema_compensacion(P
 
 #Resultados
 
-Desviaciones = []
-B_perp_total = B_perp_bottom+B_perp_top+B_perp_paredes
+B_perp_total = np.concatenate((B_perp_bottom, B_perp_top, B_perp_paredes))
 Media_total = np.sum(B_perp_total)/len(B_perp_total)
-for i in range(len(B_perp_total)):
-	Desviaciones.append((B_perp_total[i]-Media_total)**2)
+#for i in range(len(B_perp_total)):
+	#Desviaciones.append((B_perp_total[i]-Media_total)**2)
+Desviaciones = [(B_perp_total[i]-Media_total)**2 for i in range(len(B_perp_total))]
 	
 Desviacion_est = np.sqrt(np.sum(Desviaciones)/len(B_perp_total))
-PMTs_malos_total = PMTs_malos_paredes+PMTs_bottom+PMTs_malos_top
+PMTs_malos_total = PMTs_malos_paredes+PMTs_malos_bottom+PMTs_malos_top
 
 
 print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
-print(f"La media del campo magnético es de {Media_total}")
 print(f"El número de PMTs malos en top es {PMTs_malos_top}")
 print(f"El número de PMTs malos en bottom es {PMTs_malos_bottom}")
 print(f"El número de PMTs malos en las paredes es {PMTs_malos_paredes}")
@@ -308,8 +293,10 @@ plt.title("$B_{perp}$ distribution for all the PMTs")
 textstr = '\n'.join((
     r'$\mu=%.2f\ \mathrm{mG}$' % (Media_total, ),
     r'$\sigma=%.2f\ \mathrm{mG}$' % (Desviacion_est, ),
-    r'Prop. excess=%.2f%' % (PMTs_malos_total * 100 / len(B_perp_total), )
+    r'Prop. excess=%.2f\ \%%' % (PMTs_malos_total * 100 / len(B_perp_total), )
 ))
+
+
 
     
 props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
