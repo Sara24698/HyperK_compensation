@@ -239,12 +239,16 @@ def Sistema_compensacion(puntos, visualize = False, elipticas = False):
 
     return PMTs_malos, B_perp, Coordenadas
 
-def export_data(Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes, nombre_archivo):
+def export_efficiency_data(Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes, nombre_archivo):
         Coordenadas = np.concatenate((Coordenadas_top, Coordenadas_top, Coordenadas_paredes))
         df = pd.DataFrame(Coordenadas, columns=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Bp', 'faceid'])
         df.to_csv('./'+nombre_archivo+'.csv', index=False, sep=',')
 
-def hist(nombre, B_perp_total, Media_total, Desviacion_est, PMTs_malos_total):
+def export_resultados(Resultados, nombre_archivo):
+        df = pd.DataFrame(Resultados, columns=['Media', 'D. Estandar', 'Exc. top', 'Exc. bottom', 'Exc. paredes', 'Prop. Exceso'])
+        df.to_excel('./'+nombre_archivo+'.xlsx', index=False)
+
+def hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre):
         intervalos = np.arange(0, 210, 5) #calculamos los extremos de los intervalos
         plt.hist(x=B_perp_total, bins=intervalos, color="#080049", rwidth=0.85)
         plt.xlabel("Remaining magnetic field perpendicular to PMT (mG)")
@@ -265,7 +269,7 @@ def hist(nombre, B_perp_total, Media_total, Desviacion_est, PMTs_malos_total):
 	
 
 #Resultados
-def resultados(export=True, histogram=True):
+def resultados(export_ef_data=True, histogram=True, export_results=True):
     PMTs_malos_top, B_perp_top, Coordenadas_top = Sistema_compensacion(PMTs_top, visualize=True, elipticas=False)
     PMTs_malos_bottom, B_perp_bottom, Coordenadas_bottom= Sistema_compensacion(PMTs_bottom, visualize=False, elipticas=False)
     PMTs_malos_paredes, B_perp_paredes, Coordenadas_paredes = Sistema_compensacion(PMTs_paredes, visualize=False, elipticas=False)	
@@ -276,6 +280,8 @@ def resultados(export=True, histogram=True):
         
     Desviacion_est = np.sqrt(np.sum(Desviaciones)/len(B_perp_total))
     PMTs_malos_total = PMTs_malos_paredes+PMTs_malos_bottom+PMTs_malos_top
+    Resultados = np.array([[Media_total, Desviacion_est, PMTs_malos_top, PMTs_malos_bottom, PMTs_malos_paredes, PMTs_malos_total * 100 / len(B_perp_total)]])
+
 
 
     print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
@@ -287,13 +293,16 @@ def resultados(export=True, histogram=True):
     print(f"El número de PMTs en la pared es {len(z) * len(Angulo)}, en cada una de las tapas {len(PMTs_top)}, y en total en el detector hay {len(B_perp_total)}")
     print(f"El porcentaje de PMTs malos es {PMTs_malos_total * 100 / len(B_perp_total):.2f}%")
 
-    if export==True:
-        export_data(Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes, nombre_archivo='1º')
+    if export_ef_data==True:
+        export_efficiency_data(Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes, nombre_archivo='1º')
 
     if histogram==True:
-         hist('1º', B_perp_total, Media_total, Desviacion_est, PMTs_malos_total)
+         hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre='1º')
+
+    if export_results==True:
+         export_resultados(Resultados, nombre_archivo='1º')
          
 
     
-resultados(export=True, histogram=True)
+resultados(export_ef_data=False, histogram=False, export_results=True)
 
