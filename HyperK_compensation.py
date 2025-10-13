@@ -82,11 +82,10 @@ def rotacion_campo(Angulos_rotacion):
      return Bx_desviado, By_desviado
 
 #Función principal
-def Sistema_compensacion(puntos, visualize = False, elipticas = False):
+
+def Sistema_compensacion(puntos, Angulos_rotacion, visualize = False, elipticas = False):
 
 	# rectangular loops I=1 A
-
-	
     w1r = wire.Wire(path=wire.Wire.RectangularPath(dx=np.sqrt(radio_cilindro**2 - pos_espira_rectangular[0]**2)*2, dy=Altura), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[0], 0]).Translate([0,0, 0.5])
     sol = biotsavart.BiotSavart(wire=w1r)
 
@@ -217,98 +216,177 @@ def Sistema_compensacion(puntos, visualize = False, elipticas = False):
 
     B = sol.CalculateB(points=puntos)*(10**7)
 
-    Bx = [B[q,0] for q in range (len(puntos))]
-    By = [B[q,1]+303 for q in range (len(puntos))]
-    Bz = [B[q,2]-366 for q in range (len(puntos))]
-    B_perp=[]
+    Bx_desviado, By_desviado = rotacion_campo(Angulos_rotacion)
 
-    for q in range(len(puntos)):
-        if len(puntos) == len(PMTs_bottom):
-            B_perp.append(np.sqrt(B[q,0]**2+(B[q,1]+303)**2))
-            		
-        else:
-            B_perp.append(np.sqrt((B[q,0]*np.sin(Angulo[q])-(B[q,1]+303)*np.cos(Angulo[q]))**2+(B[q,2]-366)**2))
-            
-		
+    parametros = []
+    for i in range(len(Bx_desviado)):
+        Bx = [B[q,0]+Bx_desviado[i] for q in range (len(puntos))]
+        By = [B[q,1]+By_desviado[i] for q in range (len(puntos))]
+        Bz = [B[q,2]-366 for q in range (len(puntos))]
+        B_perp=[]
 
-		
-	# make figure with loops in 3D
-    
-    PMTs_malos = 0
-
-    for alfa in range(len(B_perp)):
-        Coordenadas.append([puntos[alfa][0], puntos[alfa][1], puntos[alfa][2], Bx[alfa], By[alfa], Bz[alfa], B_perp[alfa], 1 if puntos[alfa][2] == 32.9 else 3 if puntos[alfa][2] == -32.9 else 2])
-        if np.abs(B_perp[alfa]) > 100:
-            PMTs_malos = PMTs_malos+1
-
-			
-
-    return PMTs_malos, B_perp, Coordenadas
-
-def export_efficiency_data(Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes, nombre_archivo):
-        Coordenadas = np.concatenate((Coordenadas_top, Coordenadas_top, Coordenadas_paredes))
-        df = pd.DataFrame(Coordenadas, columns=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Bp', 'faceid'])
-        df.to_csv('./'+nombre_archivo+'.csv', index=False, sep=',')
-
-def export_resultados(Resultados, nombre_archivo):
-        df = pd.DataFrame(Resultados, columns=['Media', 'D. Estandar', 'Exc. top', 'Exc. bottom', 'Exc. paredes', 'Prop. Exceso'])
-        df.to_excel('./'+nombre_archivo+'.xlsx', index=False)
-
-def hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre):
-        intervalos = np.arange(0, 210, 5) #calculamos los extremos de los intervalos
-        plt.hist(x=B_perp_total, bins=intervalos, color="#080049", rwidth=0.85)
-        plt.xlabel("Remaining magnetic field perpendicular to PMT (mG)")
-        plt.ylabel("Number of PMTs")
-        plt.ylim(0,6500)
-        plt.xticks(np.arange(0, 200, 25))
-        plt.title("$B_{perp}$ distribution for all the PMTs")
-        textstr = '\n'.join((
-            r'$\mu=%.2f\ \mathrm{mG}$' % (Media_total, ),
-            r'$\sigma=%.2f\ \mathrm{mG}$' % (Desviacion_est, ),
-            r'Prop. excess=%.2f\ \%%' % (PMTs_malos_total * 100 / len(B_perp_total), )
-        ))
+        for q in range(len(puntos)):
+            if len(puntos) == len(PMTs_bottom):
+                B_perp.append(np.sqrt((B[q,0]+Bx_desviado[i])**2+(B[q,1]+By_desviado[i])**2))
+                        
+            else:
+                B_perp.append(np.sqrt(((B[q,0]+Bx_desviado[i])*np.sin(Angulo[q])-(B[q,1]+By_desviado[i])*np.cos(Angulo[q]))**2+(B[q,2]-366)**2))
+                
+                      
+        # make figure with loops in 3D
         
-        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        PMTs_malos = 0
+        Coordenadas_i = []
 
-        plt.text(140,2000, textstr, fontsize=10, bbox=props)
-        plt.savefig('./'+nombre+'.png')	
+        for alfa in range(len(B_perp)):
+            Coordenadas_i.append([
+                puntos[alfa][0], puntos[alfa][1], puntos[alfa][2],
+                Bx[alfa], By[alfa], Bz[alfa], B_perp[alfa],
+                1 if puntos[alfa][2] == 32.9 else 3 if puntos[alfa][2] == -32.9 else 2
+            ])
+            if np.abs(B_perp[alfa]) > 100:
+                PMTs_malos += 1
+
+        parametros.append({
+            "angulo": Angulos_rotacion[i],
+            "PMTs_malos": PMTs_malos,
+            "B_perp": B_perp,
+            "Coordenadas": Coordenadas_i
+        })
+
+    return parametros
+
+def export_efficiency_data(parametros_top, parametros_bottom, parametros_paredes, nombre_base='Resultados'):
+    """
+    Exporta las coordenadas y campos B_perp de todos los ángulos a archivos CSV separados.
+    Cada archivo se llama: <nombre_base>_angulo_<valor>.csv
+    """
+    for i in range(len(parametros_top)):
+        angulo = parametros_top[i]["angulo"]
+
+        # Extraer coordenadas de ese ángulo
+        Coordenadas_top = np.array(parametros_top[i]["Coordenadas"])
+        Coordenadas_bottom = np.array(parametros_bottom[i]["Coordenadas"])
+        Coordenadas_paredes = np.array(parametros_paredes[i]["Coordenadas"])
+
+        # Unir todo
+        Coordenadas = np.concatenate((Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes))
+
+        # Crear DataFrame
+        df = pd.DataFrame(Coordenadas, columns=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Bp', 'faceid'])
+
+        # Guardar CSV (uno por ángulo)
+        nombre_archivo = f'./{nombre_base}_angulo_{angulo:.1f}.csv'
+        df.to_csv(nombre_archivo, index=False, sep=',')
+
+
+def export_resultados(Resultados, nombre_archivo='Resultados'):
+    """
+    Exporta un único archivo Excel con los resultados por ángulo.
+    Cada fila corresponde a un ángulo de rotación.
+    """
+    df = pd.DataFrame(Resultados, columns=[
+        'Ángulo',
+        'Media',
+        'D. Estandar',
+        'Exc. top',
+        'Exc. bottom',
+        'Exc. paredes',
+        'Prop. Exceso'
+    ])
+    df.to_excel('./'+nombre_archivo+'.xlsx', index=False)
+
+
+def hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre_base, angulo):
+    """
+    Guarda un histograma de B_perp_total para un ángulo específico.
+    """
+    intervalos = np.arange(0, 210, 5)  # intervalos de la histograma
+    plt.figure(figsize=(8,5))
+    plt.hist(x=B_perp_total, bins=intervalos, color="#080049", rwidth=0.85)
+    plt.xlabel("Remaining magnetic field perpendicular to PMT (mG)")
+    plt.ylabel("Number of PMTs")
+    plt.ylim(0, 6500)
+    plt.xticks(np.arange(0, 200, 25))
+    plt.title(f"$B_{{perp}}$ distribution for all PMTs (Angle = {angulo}°)")
+    
+    # Cuadro de estadísticas
+    textstr = '\n'.join((
+        r'$\mu=%.2f\ \mathrm{mG}$' % (Media_total, ),
+        r'$\sigma=%.2f\ \mathrm{mG}$' % (Desviacion_est, ),
+        r'Prop. excess=%.2f\ \%%' % (PMTs_malos_total * 100 / len(B_perp_total), )
+    ))
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    plt.text(140, 2000, textstr, fontsize=10, bbox=props)
+    
+    # Guardar archivo con nombre que incluye el ángulo
+    nombre_archivo = f'./{nombre_base}_angulo_{angulo:.1f}.png'
+    plt.savefig(nombre_archivo)
+    plt.close()
+
 	
 
 #Resultados
-def resultados(export_ef_data=True, histogram=True, export_results=True):
-    PMTs_malos_top, B_perp_top, Coordenadas_top = Sistema_compensacion(PMTs_top, visualize=True, elipticas=False)
-    PMTs_malos_bottom, B_perp_bottom, Coordenadas_bottom= Sistema_compensacion(PMTs_bottom, visualize=False, elipticas=False)
-    PMTs_malos_paredes, B_perp_paredes, Coordenadas_paredes = Sistema_compensacion(PMTs_paredes, visualize=False, elipticas=False)	
+def resultados(Angulos_rotacion, export_ef_data=True, histogram=True, export_results=True):
+    parametros_top = Sistema_compensacion(PMTs_top, Angulos_rotacion, visualize=True, elipticas=False)
+    parametros_bottom= Sistema_compensacion(PMTs_bottom, Angulos_rotacion, visualize=False, elipticas=False)
+    parametros_paredes = Sistema_compensacion(PMTs_paredes, Angulos_rotacion, visualize=False, elipticas=False)	
 	
-    B_perp_total = np.concatenate((B_perp_bottom, B_perp_top, B_perp_paredes))
-    Media_total = np.sum(B_perp_total)/len(B_perp_total)
-    Desviaciones = [(B_perp_total[i]-Media_total)**2 for i in range(len(B_perp_total))]
-        
-    Desviacion_est = np.sqrt(np.sum(Desviaciones)/len(B_perp_total))
-    PMTs_malos_total = PMTs_malos_paredes+PMTs_malos_bottom+PMTs_malos_top
-    Resultados = np.array([[Media_total, Desviacion_est, PMTs_malos_top, PMTs_malos_bottom, PMTs_malos_paredes, PMTs_malos_total * 100 / len(B_perp_total)]])
+    Resultados = []  # Aquí guardaremos una fila por cada ángulo
+    
+    # Recorremos todos los ángulos
+    for i, angulo in enumerate(Angulos_rotacion):
+        # Extraemos los resultados correspondientes a ese ángulo
+        B_perp_top = parametros_top[i]["B_perp"]
+        B_perp_bottom = parametros_bottom[i]["B_perp"]
+        B_perp_paredes = parametros_paredes[i]["B_perp"]
+
+        PMTs_malos_top = parametros_top[i]["PMTs_malos"]
+        PMTs_malos_bottom = parametros_bottom[i]["PMTs_malos"]
+        PMTs_malos_paredes = parametros_paredes[i]["PMTs_malos"]
+
+        # Combinamos todo
+        B_perp_total = np.concatenate((B_perp_top, B_perp_bottom, B_perp_paredes))
+
+        # Calculamos las estadísticas
+        Media_total = np.mean(B_perp_total)
+        Desviacion_est = np.std(B_perp_total)
+        PMTs_malos_total = PMTs_malos_top + PMTs_malos_bottom + PMTs_malos_paredes
+        Prop_malos = PMTs_malos_total * 100 / len(B_perp_total)
+
+        # Añadimos los resultados de este ángulo
+        Resultados.append([
+            angulo,
+            Media_total,
+            Desviacion_est,
+            PMTs_malos_top,
+            PMTs_malos_bottom,
+            PMTs_malos_paredes,
+            Prop_malos
+        ])
 
 
 
-    print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
-    print(f"El número de PMTs malos en top es {PMTs_malos_top}")
-    print(f"El número de PMTs malos en bottom es {PMTs_malos_bottom}")
-    print(f"El número de PMTs malos en las paredes es {PMTs_malos_paredes}")
+        print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
+        print(f"El número de PMTs malos en top es {PMTs_malos_top}")
+        print(f"El número de PMTs malos en bottom es {PMTs_malos_bottom}")
+        print(f"El número de PMTs malos en las paredes es {PMTs_malos_paredes}")
 
-    print(f"El número total de PMTs malos es {PMTs_malos_total}")
-    print(f"El número de PMTs en la pared es {len(z) * len(Angulo)}, en cada una de las tapas {len(PMTs_top)}, y en total en el detector hay {len(B_perp_total)}")
-    print(f"El porcentaje de PMTs malos es {PMTs_malos_total * 100 / len(B_perp_total):.2f}%")
+        print(f"El número total de PMTs malos es {PMTs_malos_total}")
+        print(f"El número de PMTs en la pared es {len(z) * len(Angulo)}, en cada una de las tapas {len(PMTs_top)}, y en total en el detector hay {len(B_perp_total)}")
+        print(f"El porcentaje de PMTs malos es {PMTs_malos_total * 100 / len(B_perp_total):.2f}%")
 
-    if export_ef_data==True:
-        export_efficiency_data(Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes, nombre_archivo='1º')
+        if histogram==True:
+            hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre_base='Histograma', angulo=angulo)
 
-    if histogram==True:
-         hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre='1º')
+    if export_ef_data:
+        export_efficiency_data(parametros_top, parametros_bottom, parametros_paredes, nombre_base='Datos')
 
-    if export_results==True:
-         export_resultados(Resultados, nombre_archivo='1º')
+
+    if export_results:
+        export_resultados(Resultados, nombre_archivo='Compensacion')
          
 
     
-resultados(export_ef_data=False, histogram=False, export_results=False)
+resultados([0], export_ef_data=False, histogram=False, export_results=False)
 
