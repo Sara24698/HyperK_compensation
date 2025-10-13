@@ -14,6 +14,9 @@ import biotsavart
 import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import sqlite3
+
+
 
 
 #Definicion de constantes
@@ -263,6 +266,24 @@ def export_efficiency_data(parametros_top, parametros_bottom, parametros_paredes
     Exporta las coordenadas y campos B_perp de todos los ángulos a archivos CSV separados.
     Cada archivo se llama: <nombre_base>_angulo_<valor>.csv
     """
+    conn = sqlite3.connect('./Compensated_field.db')
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS Coordenadas (
+        angulo REAL,
+        x REAL,
+        y REAL,
+        z REAL,
+        Bx REAL,
+        By REAL,
+        Bz REAL,
+        Bp REAL,
+        faceid INTEGER
+    )
+    """)
+    conn.commit()
+
+
     for i in range(len(parametros_top)):
         angulo = parametros_top[i]["angulo"]
 
@@ -280,6 +301,15 @@ def export_efficiency_data(parametros_top, parametros_bottom, parametros_paredes
         # Guardar CSV (uno por ángulo)
         nombre_archivo = f'./{nombre_base}_angulo_{angulo:.1f}.csv'
         df.to_csv(nombre_archivo, index=False, sep=',')
+
+        df['angulo'] = angulo
+
+        # Insertar en SQL
+        df.to_sql('Coordenadas', conn, if_exists='append', index=False)
+
+    conn.close()
+
+
 
 
 def export_resultados(Resultados, nombre_archivo='Resultados'):
