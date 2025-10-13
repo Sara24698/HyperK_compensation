@@ -73,7 +73,13 @@ for g in range(len(points2)):
 for i in range(len(z)):
 	for j in range(len(Angulo_vuelta)):
 		PMTs_paredes.append([radio_PMT*np.cos(Angulo_vuelta[j]), radio_PMT*np.sin(Angulo_vuelta[j]), z[i]])
-          
+
+
+def rotacion_campo(Angulos_rotacion):
+     Bx_desviado = [-303*np.sin(i) for i in Angulos_rotacion]
+     By_desviado = [303*np.cos(i) for i in Angulos_rotacion]
+
+     return Bx_desviado, By_desviado
 
 #Función principal
 def Sistema_compensacion(puntos, visualize = False, elipticas = False):
@@ -304,5 +310,5 @@ def resultados(export_ef_data=True, histogram=True, export_results=True):
          
 
     
-resultados(export_ef_data=False, histogram=False, export_results=True)
+resultados(export_ef_data=False, histogram=False, export_results=False)
 
