@@ -76,8 +76,10 @@ for i in range(len(z)):
 
 
 def rotacion_campo(Angulos_rotacion):
-     Bx_desviado = [-303*np.sin(i) for i in Angulos_rotacion]
-     By_desviado = [303*np.cos(i) for i in Angulos_rotacion]
+     Angulos_rad = [np.deg2rad(a) for a in Angulos_rotacion]
+
+     Bx_desviado = [-303*np.sin(i) for i in Angulos_rad]
+     By_desviado = [303*np.cos(i) for i in Angulos_rad]
 
      return Bx_desviado, By_desviado
 
@@ -217,6 +219,8 @@ def Sistema_compensacion(puntos, Angulos_rotacion, visualize = False, elipticas 
     B = sol.CalculateB(points=puntos)*(10**7)
 
     Bx_desviado, By_desviado = rotacion_campo(Angulos_rotacion)
+    print(Bx_desviado)
+    print(By_desviado)
 
     parametros = []
     for i in range(len(Bx_desviado)):
@@ -388,5 +392,5 @@ def resultados(Angulos_rotacion, export_ef_data=True, histogram=True, export_res
          
 
     
-resultados([0], export_ef_data=False, histogram=False, export_results=False)
+resultados([0, 0.1, 0.5, 1, 2, 3, 5, 10, 15, 20], export_ef_data=True, histogram=True, export_results=True)
 
