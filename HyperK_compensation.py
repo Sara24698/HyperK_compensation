@@ -288,13 +288,13 @@ def export_resultados(Resultados, nombre_archivo='Resultados'):
     Cada fila corresponde a un ángulo de rotación.
     """
     df = pd.DataFrame(Resultados, columns=[
-        'Angle',
-        'Mean',
-        'Standard Deviation',
+        'Angle (º)',
+        'Mean (mG)',
+        'Standard Deviation (mG)',
         'Exc. top',
-        'Exc. bottom',
+        'Exc. bottom ',
         'Exc. paredes',
-        'Prop. Excess'
+        'Prop. Excess (%)'
     ])
     df.to_excel('./'+nombre_archivo+'.xlsx', index=False)
 
