@@ -76,12 +76,12 @@ for i in range(len(z)):
 
 
 def rotacion_campo(Angulos_rotacion):
-     Angulos_rad = [np.deg2rad(a) for a in Angulos_rotacion]
+    Angulos_rad = np.deg2rad(Angulos_rotacion)  # Convertir a radianes
 
-     Bx_desviado = [-303*np.sin(i) for i in Angulos_rad]
-     By_desviado = [303*np.cos(i) for i in Angulos_rad]
+    Bx_desviado = -303 * np.sin(Angulos_rad)
+    By_desviado = 303 * np.cos(Angulos_rad)
 
-     return Bx_desviado, By_desviado
+    return Bx_desviado, By_desviado
 
 #Función principal
 
