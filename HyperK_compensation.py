@@ -219,8 +219,6 @@ def Sistema_compensacion(puntos, Angulos_rotacion, visualize = False, elipticas 
     B = sol.CalculateB(points=puntos)*(10**7)
 
     Bx_desviado, By_desviado = rotacion_campo(Angulos_rotacion)
-    print(Bx_desviado)
-    print(By_desviado)
 
     parametros = []
     for i in range(len(Bx_desviado)):
@@ -290,13 +288,13 @@ def export_resultados(Resultados, nombre_archivo='Resultados'):
     Cada fila corresponde a un ángulo de rotación.
     """
     df = pd.DataFrame(Resultados, columns=[
-        'Ángulo',
-        'Media',
-        'D. Estandar',
+        'Angle',
+        'Mean',
+        'Standard Deviation',
         'Exc. top',
         'Exc. bottom',
         'Exc. paredes',
-        'Prop. Exceso'
+        'Prop. Excess'
     ])
     df.to_excel('./'+nombre_archivo+'.xlsx', index=False)
 
@@ -392,5 +390,5 @@ def resultados(Angulos_rotacion, export_ef_data=True, histogram=True, export_res
          
 
     
-resultados([0, 0.1, 0.5, 1, 2, 3, 5, 10, 15, 20], export_ef_data=True, histogram=True, export_results=True)
+resultados([0, 0.1, 0.5, 1, 2, 3, 5, 10, 15, 20], export_ef_data=False, histogram=True, export_results=True)
 
