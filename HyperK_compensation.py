@@ -51,32 +51,44 @@ Coordenadas = []
 Longitud=[]
 
 
-#Definición de puntos
-x = np.arange(-31.815, 32, 0.707)
-y = np.arange(-31.815, 32, 0.707)
+def posiciones(geomagnetico=True, rebar=False):
 
-Angulo_vuelta = np.arange(0, 6.315, 0.0218)
-z=np.arange(-32.522, 32.523, 0.707)
-Angulo = np.tile(Angulo_vuelta, len(z))
+    if geomagnetico==True:
+        x = np.arange(-31.815, 32, 0.707)
+        y = np.arange(-31.815, 32, 0.707)
 
-
-
-for r in range(len(x)):
-	for h in range(len(y)):
-		points2.append([x[r], y[h]])
+        Angulo_vuelta = np.arange(0, 6.315, 0.0218)
+        z=np.arange(-32.522, 32.523, 0.707)
+        Angulo = np.tile(Angulo_vuelta, len(z))
 
 
-for g in range(len(points2)):
-	distancia = np.sqrt(points2[g][0]**2+points2[g][1]**2)
-	if distancia <=32.01:
-		PMTs_top.append([points2[g][0], points2[g][1], 32.9])
-		PMTs_bottom.append([points2[g][0], points2[g][1], -32.9])
+
+        for r in range(len(x)):
+            for h in range(len(y)):
+                points2.append([x[r], y[h]])
 
 
-for i in range(len(z)):
-	for j in range(len(Angulo_vuelta)):
-		PMTs_paredes.append([radio_PMT*np.cos(Angulo_vuelta[j]), radio_PMT*np.sin(Angulo_vuelta[j]), z[i]])
+        for g in range(len(points2)):
+            distancia = np.sqrt(points2[g][0]**2+points2[g][1]**2)
+            if distancia <=32.01:
+                PMTs_top.append([points2[g][0], points2[g][1], 32.9])
+                PMTs_bottom.append([points2[g][0], points2[g][1], -32.9])
 
+
+        for i in range(len(z)):
+            for j in range(len(Angulo_vuelta)):
+                PMTs_paredes.append([radio_PMT*np.cos(Angulo_vuelta[j]), radio_PMT*np.sin(Angulo_vuelta[j]), z[i]])
+
+        return PMTs_top, PMTs_bottom, PMTs_paredes, Angulo
+    
+    if rebar==True:
+        df= pd.read_csv('./efecto_pos3.csv', header=None, sep=';',names=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Btotal', 'Bx_T', 'By_T', 'Bz_T'])
+        df = df.drop(['Btotal','Bx_T', 'By_T', 'Bz_T'], axis=1)
+        puntos = df[['x', 'y', 'z']].values.tolist()
+        campo = df[['Bx', 'By', 'Bz']].values.tolist()
+        Angulo = np.arctan2(df['y'], df['x'])
+
+        return puntos, campo, Angulo
 
 def rotacion_campo(Angulos_rotacion):
     Angulos_rad = np.deg2rad(Angulos_rotacion)  # Convertir a radianes
@@ -420,5 +432,5 @@ def resultados(Angulos_rotacion, export_ef_data=True, histogram=True, export_res
          
 
     
-resultados([0, 0.1, 0.5, 1, 2, 3, 5, 10, 15, 20], export_ef_data=False, histogram=True, export_results=True)
+resultados([0], export_ef_data=False, histogram=False, export_results=True)
 
