@@ -100,10 +100,11 @@ def rotacion_campo(Angulos_rotacion, campo, puntos, geomagnetico = True, rebar=F
     campo = np.array(campo)
 
     # Repetimos el campo en cada punto (39800 veces)
-    Np = len(puntos)
-    campo = np.tile(campo, (Np, 1))  # (39800, 3)
+
 
     if geomagnetico:
+        Np =39844
+        campo = np.tile(campo, (Np, 1)) 
         Bx_desviado = np.zeros((Np, len(Angulos_rad)))
         By_desviado = np.zeros((Np, len(Angulos_rad)))
         Bz_desviado = np.zeros((Np, len(Angulos_rad)))
@@ -121,8 +122,7 @@ def rotacion_campo(Angulos_rotacion, campo, puntos, geomagnetico = True, rebar=F
 
         return Bx_desviado, By_desviado, Bz_desviado
     
-    if rebar == True:
-        campo = np.array(campo)  # forma (N,3)
+    if rebar == True:  
         Bx_desviado = []
         By_desviado = []
         Bz_desviado = []
@@ -292,7 +292,7 @@ def Sistema_compensacion(puntos, Angulo, campo, Angulos_rotacion, visualize = Fa
         B_perp=[]
 
         for q in range(len(puntos)):
-            if len(puntos) == len(PMTs_bottom):
+            if puntos[q][2] == 32.9 or puntos[q][2] == -32.9:
                 B_perp.append(np.sqrt(Bx[q]**2 + By[q]**2))
             else:
                 B_perp.append(np.sqrt(
@@ -536,5 +536,5 @@ def resultados(Angulos_rotacion, mode, export_ef_data=True, histogram=True, expo
 
 
     
-resultados([0,3], mode='geomagnetico', export_ef_data=True, histogram=True, export_results=True)
+resultados([0, 0.5, 1, 2, 3, 5, 10, 15, 20], mode='rebar', export_ef_data=True, histogram=True, export_results=True)
 

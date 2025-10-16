@@ -167,9 +167,9 @@ def Espiras(puntos, campo, Angulo):
         Bz.append(B1[l,2]+campo[l][2])
 
         if puntos[l][2] == 32.9 or puntos[l][2] == -32.9:
-            B_perp.append(np.sqrt((B1[l,0]+campo[l][0])**2+(B1[l,1]+campo[l][1])**2))
+            B_perp.append(np.sqrt((Bx)**2+(By)**2))
         else:
-            B_perp.append(np.sqrt(((B1[l,0]+campo[l][0])*np.sin(Angulo[l])-(B1[l,1]+campo[l][1])*np.cos(Angulo[l]))**2+(B1[l,2]+campo[l][2])**2))
+            B_perp.append(np.sqrt(((Bx)*np.sin(Angulo[l])-(By)*np.cos(Angulo[l]))**2+(Bz)**2))
 		
 
 		
