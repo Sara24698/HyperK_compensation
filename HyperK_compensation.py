@@ -15,7 +15,16 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import sqlite3
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--angulos", nargs="+", type=float, default=[0])
+parser.add_argument("--mode", type=str, default="rebar")
+parser.add_argument("--export_ef_data", action="store_true")
+parser.add_argument("--histogram", action="store_true")
+parser.add_argument("--export_results", action="store_true")
+
+args = parser.parse_args()
 
 
 
@@ -539,4 +548,4 @@ def resultados(Angulos_rotacion, mode, export_ef_data=True, histogram=True, expo
 
 # Esto solo se ejecuta si corremos directamente main.py
 if __name__ == "__main__":
-    resultados([0, 0.5, 1, 2, 3, 5, 10, 15, 20], mode='rebar', export_ef_data=False, histogram=False, export_results=True)
+    resultados(args.angulos, mode=args.mode, export_ef_data=args.export_ef_data, histogram=args.histogram, export_results=args.export_results)
