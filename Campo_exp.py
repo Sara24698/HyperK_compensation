@@ -25,7 +25,7 @@ puntos = df[['x', 'y', 'z']].values.tolist()
 campo = df[['Bx', 'By', 'Bz']].values.tolist()
 
 
-
+print(np.shape(campo))
 Angulo = np.arctan2(df['y'], df['x'])
 
 

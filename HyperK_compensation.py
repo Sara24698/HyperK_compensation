@@ -89,6 +89,7 @@ def posiciones(geomagnetico=True, rebar=False):
         puntos = df[['x', 'y', 'z']].values.tolist()
         campo = df[['Bx', 'By', 'Bz']].values.tolist()
         Angulo = np.arctan2(df['y'], df['x'])
+        
 
         return puntos, campo, Angulo
 
@@ -104,10 +105,9 @@ def rotacion_campo(Angulos_rotacion, campo, geomagnetico = True, rebar=False):
     
     if rebar == True:
         campo = np.array(campo)  # forma (N,3)
-        campo_rotado_por_angulo = []
-        Bx_desviado=[]
-        By_desviado=[]
-        Bz_desviado=[]
+        Bx_desviado = []
+        By_desviado = []
+        Bz_desviado = []
 
         for theta in Angulos_rad:
             Rz = np.array([
@@ -115,10 +115,16 @@ def rotacion_campo(Angulos_rotacion, campo, geomagnetico = True, rebar=False):
                 [np.sin(theta),  np.cos(theta), 0],
                 [0, 0, 1]
             ])
-            campo_rotado = campo @ Rz.T  # aplica a todos los vectores
-            Bx_desviado.append(campo_rotado[:,0])
-            By_desviado.append(campo_rotado[:,1])
-            Bz_desviado.append(campo_rotado[:,2])
+            campo_rotado = campo @ Rz.T  # (39800,3)
+            Bx_desviado.append(campo_rotado[:,0][:, np.newaxis])  # shape (39800,1)
+            By_desviado.append(campo_rotado[:,1][:, np.newaxis])
+            Bz_desviado.append(campo_rotado[:,2][:, np.newaxis])
+
+        # Apilamos horizontalmente
+        Bx_desviado = np.hstack(Bx_desviado)  # (39800, n_angles)
+        By_desviado = np.hstack(By_desviado)
+        Bz_desviado = np.hstack(Bz_desviado)
+        print(np.shape(Bx_desviado))
         
         return Bx_desviado, By_desviado, Bz_desviado
 
@@ -255,24 +261,26 @@ def Sistema_compensacion(puntos, Angulo, campo, Angulos_rotacion, visualize = Fa
         sol.mpl3d_PlotWires(ax)
         plt.show()
 
-
+    Bx_desviado, By_desviado, Bz_desviado = rotacion_campo(Angulos_rotacion, campo, geomagnetico, rebar)
     B = sol.CalculateB(points=puntos)*(10**7)
 
-    Bx_desviado, By_desviado, Bz_desviado = rotacion_campo(Angulos_rotacion, campo, geomagnetico, rebar)
+    
 
     parametros = []
-    for i in range(len(Bx_desviado)):
-        Bx = [B[q,0]+Bx_desviado[i] for q in range (len(puntos))]
-        By = [B[q,1]+By_desviado[i] for q in range (len(puntos))]
-        Bz = [B[q,2]+Bz_desviado[i] for q in range (len(puntos))]
+    for i in range(len(Angulos_rotacion)):
+        Bx = B[:,0] + Bx_desviado[:, i]
+        By = B[:,1] + By_desviado[:, i]
+        Bz = B[:,2] + Bz_desviado[:, i]
         B_perp=[]
 
         for q in range(len(puntos)):
             if len(puntos) == len(PMTs_bottom):
-                B_perp.append(np.sqrt((B[q,0]+Bx_desviado[i])**2+(B[q,1]+By_desviado[i])**2))
-                        
+                B_perp.append(np.sqrt(Bx[q]**2 + By[q]**2))
             else:
-                B_perp.append(np.sqrt(((B[q,0]+Bx_desviado[i])*np.sin(Angulo[q])-(B[q,1]+By_desviado[i])*np.cos(Angulo[q]))**2+(B[q,2]+Bz_desviado)**2))
+                B_perp.append(np.sqrt(
+                    (Bx[q]*np.sin(Angulo[q]) - By[q]*np.cos(Angulo[q]))**2 +
+                    Bz[q]**2
+                ))
                 
                       
         # make figure with loops in 3D
@@ -344,20 +352,31 @@ def export_efficiency_data(parametros, nombre_base='Resultados'):
 
 
 
-def export_resultados(Resultados, nombre_archivo='Resultados'):
+def export_resultados(Resultados, mode, nombre_archivo='Resultados'):
     """
     Exporta un único archivo Excel con los resultados por ángulo.
     Cada fila corresponde a un ángulo de rotación.
     """
-    df = pd.DataFrame(Resultados, columns=[
-        'Angle (º)',
-        'Mean (mG)',
-        'Standard Deviation (mG)',
-        'Exc. top',
-        'Exc. bottom ',
-        'Exc. paredes',
-        'Prop. Excess (%)'
-    ])
+    if mode =='geomagnetico':
+        df = pd.DataFrame(Resultados, columns=[
+            'Angle (º)',
+            'Mean (mG)',
+            'Standard Deviation (mG)',
+            'Exc. top',
+            'Exc. bottom ',
+            'Exc. paredes',
+            'Prop. Excess (%)'
+        ])
+    
+    if mode == 'rebar':
+        df = pd.DataFrame(Resultados, columns=[
+            'Angle (º)',
+            'Mean (mG)',
+            'Standard Deviation (mG)',
+            'Total PMTs with excess',
+            'Prop. Excess (%)'
+        ])
+
     df.to_excel('./'+nombre_archivo+'.xlsx', index=False)
 
 
@@ -399,7 +418,8 @@ def resultados(Angulos_rotacion, mode, export_ef_data=True, histogram=True, expo
         parametros_bottom= Sistema_compensacion(PMTs_bottom, Angulo, campo, Angulos_rotacion, visualize=False, elipticas=False, geomagnetico=True, rebar=False)
         parametros_paredes = Sistema_compensacion(PMTs_paredes, Angulo, campo, Angulos_rotacion, visualize=False, elipticas=False, geomagnetico=True, rebar=False)	
         
-        parametros = np.concatenate(parametros_top, parametros_bottom, parametros_paredes)
+        parametros = parametros_top + parametros_bottom + parametros_paredes
+
 
         Resultados = []  # Aquí guardaremos una fila por cada ángulo
         
@@ -494,9 +514,9 @@ def resultados(Angulos_rotacion, mode, export_ef_data=True, histogram=True, expo
 
 
         if export_results:
-            export_resultados(Resultados, nombre_archivo='Compensacion')
+            export_resultados(Resultados, mode, nombre_archivo='Compensacion')
 
 
     
-resultados([0], mode='rebar', export_ef_data=True, histogram=True, export_results=True)
+resultados([0,3], mode='rebar', export_ef_data=True, histogram=True, export_results=True)
 
