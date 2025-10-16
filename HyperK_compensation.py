@@ -54,6 +54,8 @@ Longitud=[]
 def posiciones(geomagnetico=True, rebar=False):
 
     if geomagnetico==True:
+
+        campo = [0, 303, -366]
         x = np.arange(-31.815, 32, 0.707)
         y = np.arange(-31.815, 32, 0.707)
 
@@ -79,7 +81,7 @@ def posiciones(geomagnetico=True, rebar=False):
             for j in range(len(Angulo_vuelta)):
                 PMTs_paredes.append([radio_PMT*np.cos(Angulo_vuelta[j]), radio_PMT*np.sin(Angulo_vuelta[j]), z[i]])
 
-        return PMTs_top, PMTs_bottom, PMTs_paredes, Angulo
+        return PMTs_top, PMTs_bottom, PMTs_paredes, Angulo, campo
     
     if rebar==True:
         df= pd.read_csv('./efecto_pos3.csv', header=None, sep=';',names=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Btotal', 'Bx_T', 'By_T', 'Bz_T'])
@@ -90,17 +92,40 @@ def posiciones(geomagnetico=True, rebar=False):
 
         return puntos, campo, Angulo
 
-def rotacion_campo(Angulos_rotacion):
-    Angulos_rad = np.deg2rad(Angulos_rotacion)  # Convertir a radianes
+def rotacion_campo(Angulos_rotacion, campo, geomagnetico = True, rebar=False):
+    Angulos_rad = np.deg2rad(Angulos_rotacion)
 
-    Bx_desviado = -303 * np.sin(Angulos_rad)
-    By_desviado = 303 * np.cos(Angulos_rad)
+    if geomagnetico==True:
+        Bx_desviado = -campo[1] * np.sin(Angulos_rad)
+        By_desviado = campo[1] * np.cos(Angulos_rad)
+        Bz_desviado = campo[2]
 
-    return Bx_desviado, By_desviado
+        return Bx_desviado, By_desviado, Bz_desviado
+    
+    if rebar == True:
+        campo = np.array(campo)  # forma (N,3)
+        campo_rotado_por_angulo = []
+        Bx_desviado=[]
+        By_desviado=[]
+        Bz_desviado=[]
+
+        for theta in Angulos_rad:
+            Rz = np.array([
+                [np.cos(theta), -np.sin(theta), 0],
+                [np.sin(theta),  np.cos(theta), 0],
+                [0, 0, 1]
+            ])
+            campo_rotado = campo @ Rz.T  # aplica a todos los vectores
+            Bx_desviado.append(campo_rotado[:,0])
+            By_desviado.append(campo_rotado[:,1])
+            Bz_desviado.append(campo_rotado[:,2])
+        
+        return Bx_desviado, By_desviado, Bz_desviado
+
 
 #Función principal
 
-def Sistema_compensacion(puntos, Angulos_rotacion, visualize = False, elipticas = False):
+def Sistema_compensacion(puntos, Angulo, campo, Angulos_rotacion, visualize = False, elipticas = False, geomagnetico=False, rebar=True):
 
 	# rectangular loops I=1 A
     w1r = wire.Wire(path=wire.Wire.RectangularPath(dx=np.sqrt(radio_cilindro**2 - pos_espira_rectangular[0]**2)*2, dy=Altura), discretization_length=0.1, current=I_rectangular).Rotate(axis=(1, 0, 0), deg=-90).Translate([0,pos_espira_rectangular[0], 0]).Translate([0,0, 0.5])
@@ -233,13 +258,13 @@ def Sistema_compensacion(puntos, Angulos_rotacion, visualize = False, elipticas 
 
     B = sol.CalculateB(points=puntos)*(10**7)
 
-    Bx_desviado, By_desviado = rotacion_campo(Angulos_rotacion)
+    Bx_desviado, By_desviado, Bz_desviado = rotacion_campo(Angulos_rotacion, campo, geomagnetico, rebar)
 
     parametros = []
     for i in range(len(Bx_desviado)):
         Bx = [B[q,0]+Bx_desviado[i] for q in range (len(puntos))]
         By = [B[q,1]+By_desviado[i] for q in range (len(puntos))]
-        Bz = [B[q,2]-366 for q in range (len(puntos))]
+        Bz = [B[q,2]+Bz_desviado[i] for q in range (len(puntos))]
         B_perp=[]
 
         for q in range(len(puntos)):
@@ -247,7 +272,7 @@ def Sistema_compensacion(puntos, Angulos_rotacion, visualize = False, elipticas 
                 B_perp.append(np.sqrt((B[q,0]+Bx_desviado[i])**2+(B[q,1]+By_desviado[i])**2))
                         
             else:
-                B_perp.append(np.sqrt(((B[q,0]+Bx_desviado[i])*np.sin(Angulo[q])-(B[q,1]+By_desviado[i])*np.cos(Angulo[q]))**2+(B[q,2]-366)**2))
+                B_perp.append(np.sqrt(((B[q,0]+Bx_desviado[i])*np.sin(Angulo[q])-(B[q,1]+By_desviado[i])*np.cos(Angulo[q]))**2+(B[q,2]+Bz_desviado)**2))
                 
                       
         # make figure with loops in 3D
@@ -273,7 +298,7 @@ def Sistema_compensacion(puntos, Angulos_rotacion, visualize = False, elipticas 
 
     return parametros
 
-def export_efficiency_data(parametros_top, parametros_bottom, parametros_paredes, nombre_base='Resultados'):
+def export_efficiency_data(parametros, nombre_base='Resultados'):
     """
     Exporta las coordenadas y campos B_perp de todos los ángulos a archivos CSV separados.
     Cada archivo se llama: <nombre_base>_angulo_<valor>.csv
@@ -296,16 +321,11 @@ def export_efficiency_data(parametros_top, parametros_bottom, parametros_paredes
     conn.commit()
 
 
-    for i in range(len(parametros_top)):
-        angulo = parametros_top[i]["angulo"]
+    for i in range(len(parametros)):
+        angulo = parametros[i]["angulo"]
 
         # Extraer coordenadas de ese ángulo
-        Coordenadas_top = np.array(parametros_top[i]["Coordenadas"])
-        Coordenadas_bottom = np.array(parametros_bottom[i]["Coordenadas"])
-        Coordenadas_paredes = np.array(parametros_paredes[i]["Coordenadas"])
-
-        # Unir todo
-        Coordenadas = np.concatenate((Coordenadas_top, Coordenadas_bottom, Coordenadas_paredes))
+        Coordenadas = np.array(parametros[i]["Coordenadas"])
 
         # Crear DataFrame
         df = pd.DataFrame(Coordenadas, columns=['x', 'y', 'z', 'Bx', 'By', 'Bz', 'Bp', 'faceid'])
@@ -371,66 +391,112 @@ def hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre_bas
 	
 
 #Resultados
-def resultados(Angulos_rotacion, export_ef_data=True, histogram=True, export_results=True):
-    parametros_top = Sistema_compensacion(PMTs_top, Angulos_rotacion, visualize=True, elipticas=False)
-    parametros_bottom= Sistema_compensacion(PMTs_bottom, Angulos_rotacion, visualize=False, elipticas=False)
-    parametros_paredes = Sistema_compensacion(PMTs_paredes, Angulos_rotacion, visualize=False, elipticas=False)	
-	
-    Resultados = []  # Aquí guardaremos una fila por cada ángulo
+def resultados(Angulos_rotacion, mode, export_ef_data=True, histogram=True, export_results=True):
+
+    if mode == 'geomagnetico':
+        PMTs_top, PMTs_bottom, PMTs_paredes, Angulo, campo = posiciones(geomagnetico=True, rebar=False)
+        parametros_top = Sistema_compensacion(PMTs_top, Angulo, campo, Angulos_rotacion, visualize=False, elipticas=False, geomagnetico=True, rebar=False)
+        parametros_bottom= Sistema_compensacion(PMTs_bottom, Angulo, campo, Angulos_rotacion, visualize=False, elipticas=False, geomagnetico=True, rebar=False)
+        parametros_paredes = Sistema_compensacion(PMTs_paredes, Angulo, campo, Angulos_rotacion, visualize=False, elipticas=False, geomagnetico=True, rebar=False)	
+        
+        parametros = np.concatenate(parametros_top, parametros_bottom, parametros_paredes)
+
+        Resultados = []  # Aquí guardaremos una fila por cada ángulo
+        
+        # Recorremos todos los ángulos
+        for i, angulo in enumerate(Angulos_rotacion):
+            # Extraemos los resultados correspondientes a ese ángulo
+            B_perp_top = parametros_top[i]["B_perp"]
+            B_perp_bottom = parametros_bottom[i]["B_perp"]
+            B_perp_paredes = parametros_paredes[i]["B_perp"]
+
+            PMTs_malos_top = parametros_top[i]["PMTs_malos"]
+            PMTs_malos_bottom = parametros_bottom[i]["PMTs_malos"]
+            PMTs_malos_paredes = parametros_paredes[i]["PMTs_malos"]
+
+            # Combinamos todo
+            B_perp_total = np.concatenate((B_perp_top, B_perp_bottom, B_perp_paredes))
+
+            # Calculamos las estadísticas
+            Media_total = np.mean(B_perp_total)
+            Desviacion_est = np.std(B_perp_total)
+            PMTs_malos_total = PMTs_malos_top + PMTs_malos_bottom + PMTs_malos_paredes
+            Prop_malos = PMTs_malos_total * 100 / len(B_perp_total)
+
+            # Añadimos los resultados de este ángulo
+            Resultados.append([
+                angulo,
+                Media_total,
+                Desviacion_est,
+                PMTs_malos_top,
+                PMTs_malos_bottom,
+                PMTs_malos_paredes,
+                Prop_malos
+            ])
+
+
+
+            print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
+            print(f"El número de PMTs malos en top es {PMTs_malos_top}")
+            print(f"El número de PMTs malos en bottom es {PMTs_malos_bottom}")
+            print(f"El número de PMTs malos en las paredes es {PMTs_malos_paredes}")
+
+            print(f"El número total de PMTs malos es {PMTs_malos_total}")
+            print(f"El porcentaje de PMTs malos es {PMTs_malos_total * 100 / len(B_perp_total):.2f}%")
+
+            if histogram==True:
+                hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre_base='Histograma', angulo=angulo)
+
+        if export_ef_data:
+            export_efficiency_data(parametros, nombre_base='Datos')
+
+
+        if export_results:
+            export_resultados(Resultados, nombre_archivo='Compensacion')
     
-    # Recorremos todos los ángulos
-    for i, angulo in enumerate(Angulos_rotacion):
-        # Extraemos los resultados correspondientes a ese ángulo
-        B_perp_top = parametros_top[i]["B_perp"]
-        B_perp_bottom = parametros_bottom[i]["B_perp"]
-        B_perp_paredes = parametros_paredes[i]["B_perp"]
+    if mode == 'rebar':
+        puntos, campo, Angulo = posiciones(geomagnetico=False, rebar=True)
+        parametros= Sistema_compensacion(puntos, Angulo, campo, Angulos_rotacion, visualize=False, elipticas=False, geomagnetico=False, rebar=True)
+        Resultados = []  # Aquí guardaremos una fila por cada ángulo
+        
+        # Recorremos todos los ángulos
+        for i, angulo in enumerate(Angulos_rotacion):
+            # Extraemos los resultados correspondientes a ese ángulo
+            B_perp_total= parametros[i]["B_perp"]
+            PMTs_malos_total = parametros[i]["PMTs_malos"]
 
-        PMTs_malos_top = parametros_top[i]["PMTs_malos"]
-        PMTs_malos_bottom = parametros_bottom[i]["PMTs_malos"]
-        PMTs_malos_paredes = parametros_paredes[i]["PMTs_malos"]
 
-        # Combinamos todo
-        B_perp_total = np.concatenate((B_perp_top, B_perp_bottom, B_perp_paredes))
+            # Calculamos las estadísticas
+            Media_total = np.mean(B_perp_total)
+            Desviacion_est = np.std(B_perp_total)
+            Prop_malos = PMTs_malos_total * 100 / len(B_perp_total)
 
-        # Calculamos las estadísticas
-        Media_total = np.mean(B_perp_total)
-        Desviacion_est = np.std(B_perp_total)
-        PMTs_malos_total = PMTs_malos_top + PMTs_malos_bottom + PMTs_malos_paredes
-        Prop_malos = PMTs_malos_total * 100 / len(B_perp_total)
-
-        # Añadimos los resultados de este ángulo
-        Resultados.append([
-            angulo,
-            Media_total,
-            Desviacion_est,
-            PMTs_malos_top,
-            PMTs_malos_bottom,
-            PMTs_malos_paredes,
-            Prop_malos
-        ])
+            # Añadimos los resultados de este ángulo
+            Resultados.append([
+                angulo,
+                Media_total,
+                Desviacion_est,
+                PMTs_malos_total,
+                Prop_malos
+            ])
 
 
 
-        print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
-        print(f"El número de PMTs malos en top es {PMTs_malos_top}")
-        print(f"El número de PMTs malos en bottom es {PMTs_malos_bottom}")
-        print(f"El número de PMTs malos en las paredes es {PMTs_malos_paredes}")
+            print(f"La media total es {Media_total:.2f} ± {Desviacion_est:.2f}")
+            print(f"El número total de PMTs malos es {PMTs_malos_total}")
+            print(f"El porcentaje de PMTs malos es {PMTs_malos_total * 100 / len(B_perp_total):.2f}%")
 
-        print(f"El número total de PMTs malos es {PMTs_malos_total}")
-        print(f"El número de PMTs en la pared es {len(z) * len(Angulo)}, en cada una de las tapas {len(PMTs_top)}, y en total en el detector hay {len(B_perp_total)}")
-        print(f"El porcentaje de PMTs malos es {PMTs_malos_total * 100 / len(B_perp_total):.2f}%")
+            if histogram==True:
+                hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre_base='Histograma', angulo=angulo)
 
-        if histogram==True:
-            hist(B_perp_total, Media_total, Desviacion_est, PMTs_malos_total, nombre_base='Histograma', angulo=angulo)
-
-    if export_ef_data:
-        export_efficiency_data(parametros_top, parametros_bottom, parametros_paredes, nombre_base='Datos')
+        if export_ef_data:
+            export_efficiency_data(parametros, nombre_base='Datos')
 
 
-    if export_results:
-        export_resultados(Resultados, nombre_archivo='Compensacion')
-         
+        if export_results:
+            export_resultados(Resultados, nombre_archivo='Compensacion')
+
 
     
-resultados([0], export_ef_data=False, histogram=False, export_results=True)
+resultados([0], mode='rebar', export_ef_data=True, histogram=True, export_results=True)
 
