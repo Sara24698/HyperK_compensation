@@ -536,5 +536,5 @@ def resultados(Angulos_rotacion, mode, export_ef_data=True, histogram=True, expo
 
 
     
-resultados([0, 0.5, 1, 2, 3, 5, 10, 15, 20], mode='rebar', export_ef_data=True, histogram=True, export_results=True)
+resultados([0, 0.5, 1, 2, 3, 5, 10, 15, 20], mode='rebar', export_ef_data=False, histogram=False, export_results=True)
 
