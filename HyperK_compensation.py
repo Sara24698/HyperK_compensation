@@ -536,5 +536,7 @@ def resultados(Angulos_rotacion, mode, export_ef_data=True, histogram=True, expo
 
 
     
-resultados([0, 0.5, 1, 2, 3, 5, 10, 15, 20], mode='rebar', export_ef_data=False, histogram=False, export_results=True)
 
+# Esto solo se ejecuta si corremos directamente main.py
+if __name__ == "__main__":
+    resultados([0, 0.5, 1, 2, 3, 5, 10, 15, 20], mode='rebar', export_ef_data=False, histogram=False, export_results=True)
