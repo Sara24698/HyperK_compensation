@@ -93,13 +93,31 @@ def posiciones(geomagnetico=True, rebar=False):
 
         return puntos, campo, Angulo
 
-def rotacion_campo(Angulos_rotacion, campo, geomagnetico = True, rebar=False):
+def rotacion_campo(Angulos_rotacion, campo, puntos, geomagnetico = True, rebar=False):
     Angulos_rad = np.deg2rad(Angulos_rotacion)
 
-    if geomagnetico==True:
-        Bx_desviado = -campo[1] * np.sin(Angulos_rad)
-        By_desviado = campo[1] * np.cos(Angulos_rad)
-        Bz_desviado = campo[2]
+    # Convertimos el campo a un array (por si no lo es)
+    campo = np.array(campo)
+
+    # Repetimos el campo en cada punto (39800 veces)
+    Np = len(puntos)
+    campo = np.tile(campo, (Np, 1))  # (39800, 3)
+
+    if geomagnetico:
+        Bx_desviado = np.zeros((Np, len(Angulos_rad)))
+        By_desviado = np.zeros((Np, len(Angulos_rad)))
+        Bz_desviado = np.zeros((Np, len(Angulos_rad)))
+
+        for i, theta in enumerate(Angulos_rad):
+            Rz = np.array([
+                [np.cos(theta), -np.sin(theta), 0],
+                [np.sin(theta),  np.cos(theta), 0],
+                [0, 0, 1]
+            ])
+            campo_rotado = campo @ Rz.T  # (39800, 3)
+            Bx_desviado[:, i] = campo_rotado[:, 0]
+            By_desviado[:, i] = campo_rotado[:, 1]
+            Bz_desviado[:, i] = campo_rotado[:, 2]
 
         return Bx_desviado, By_desviado, Bz_desviado
     
@@ -124,7 +142,7 @@ def rotacion_campo(Angulos_rotacion, campo, geomagnetico = True, rebar=False):
         Bx_desviado = np.hstack(Bx_desviado)  # (39800, n_angles)
         By_desviado = np.hstack(By_desviado)
         Bz_desviado = np.hstack(Bz_desviado)
-        print(np.shape(Bx_desviado))
+
         
         return Bx_desviado, By_desviado, Bz_desviado
 
@@ -261,7 +279,7 @@ def Sistema_compensacion(puntos, Angulo, campo, Angulos_rotacion, visualize = Fa
         sol.mpl3d_PlotWires(ax)
         plt.show()
 
-    Bx_desviado, By_desviado, Bz_desviado = rotacion_campo(Angulos_rotacion, campo, geomagnetico, rebar)
+    Bx_desviado, By_desviado, Bz_desviado = rotacion_campo(Angulos_rotacion, campo, puntos, geomagnetico, rebar)
     B = sol.CalculateB(points=puntos)*(10**7)
 
     
@@ -472,7 +490,7 @@ def resultados(Angulos_rotacion, mode, export_ef_data=True, histogram=True, expo
 
 
         if export_results:
-            export_resultados(Resultados, nombre_archivo='Compensacion')
+            export_resultados(Resultados, mode, nombre_archivo='Compensacion')
     
     if mode == 'rebar':
         puntos, campo, Angulo = posiciones(geomagnetico=False, rebar=True)
@@ -518,5 +536,5 @@ def resultados(Angulos_rotacion, mode, export_ef_data=True, histogram=True, expo
 
 
     
-resultados([0,3], mode='rebar', export_ef_data=True, histogram=True, export_results=True)
+resultados([0,3], mode='geomagnetico', export_ef_data=True, histogram=True, export_results=True)
 
